@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>세종아 보드</title>
+<style>
+  :root{--sj:#0FB981;--sj-bg:#E7F7F0;--hj:#2F6FEB;--hj-bg:#E8F0FE;--line:#E5E7EB;--ink:#111;--sub:#666}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo",sans-serif;color:var(--ink);background:#F7F8FA}
+  .wrap{max-width:640px;margin:0 auto;padding:16px}
+  h1{font-size:20px;margin:4px 0 12px}
+  h2{font-size:16px;margin:20px 0 8px}
+  button{font:inherit;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
+  button.primary{background:#111;color:#fff;border-color:#111}
+  input,textarea,select{font:inherit;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}
+  textarea{min-height:90px;resize:vertical}
+  label{display:block;font-size:13px;color:var(--sub);margin:12px 0 4px}
+  .row{display:flex;gap:8px;align-items:center}
+  .todo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .box{border-radius:12px;padding:12px;min-height:70px}
+  .box.sj{background:var(--sj-bg)} .box.hj{background:var(--hj-bg)}
+  .box h3{margin:0 0 6px;font-size:14px}
+  .box a{display:block;font-size:14px;padding:4px 0;color:inherit;text-decoration:underline;cursor:pointer}
+  .card{background:#fff;border:1px solid var(--line);border-left-width:6px;border-radius:12px;padding:12px;margin:8px 0;cursor:pointer}
+  .card.sj{border-left-color:var(--sj)} .card.hj{border-left-color:var(--hj)} .card.done{border-left-color:#bbb;opacity:.7}
+  .card .t{font-weight:600}
+  .meta{font-size:13px;color:var(--sub);margin-top:4px}
+  .bar{height:8px;background:#eee;border-radius:4px;margin-top:8px;overflow:hidden}
+  .bar i{display:block;height:100%}
+  .who{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff}
+  .who.sj{background:var(--sj)} .who.hj{background:var(--hj)} .who.none{background:#999}
+  .steps{list-style:none;padding:0;margin:8px 0}
+  .steps li{display:flex;gap:8px;align-items:center;padding:8px;border-radius:10px;margin:4px 0;background:#fff;border:1px solid var(--line)}
+  .steps li.cur{outline:2px solid #111}
+  .steps li.ok{color:#999;text-decoration:line-through}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tabs button.on{background:#111;color:#fff}
+  .hide{display:none}
+  .msg{font-size:13px;color:#c00;margin-top:8px}
+  .saved{font-size:12px;color:var(--sub)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 로그인 -->
+  <section id="login" class="hide">
+    <h1>세종아 보드</h1>
+    <label>이메일</label><input id="email" type="email" value="sejongahhh@gmail.com">
+    <label>비밀번호</label><input id="pw" type="password">
+    <div style="margin-top:12px"><button class="primary" id="loginBtn">로그인</button></div>
+    <div class="msg" id="loginMsg"></div>
+  </section>
+
+  <!-- 목록 -->
+  <section id="list" class="hide">
+    <div class="row" style="justify-content:space-between">
+      <h1>세종아 보드</h1>
+      <div class="row"><button id="newBtn" class="primary">+ 새 대본</button><button id="logoutBtn">로그아웃</button></div>
+    </div>
+    <h2>해야 할 일</h2>
+    <div class="todo">
+      <div class="box sj"><h3>세종</h3><div id="todoSJ"></div></div>
+      <div class="box hj"><h3>현재</h3><div id="todoHJ"></div></div>
+    </div>
+    <h2>대본</h2>
+    <div class="tabs" id="filters"></div>
+    <div id="cards"></div>
+  </section>
+
+  <!-- 상세 -->
+  <section id="detail" class="hide">
+    <div class="row" style="justify-content:space-between">
+      <button id="backBtn">← 목록</button>
+      <span class="saved" id="savedMsg"></span>
+    </div>
+    <label>제목</label><input id="f_title">
+    <div class="row">
+      <div style="flex:1"><label>기획</label><input id="f_plan" placeholder="A 식비 챌린지 등"></div>
+      <div style="flex:1"><label>작성자</label><select id="f_author"><option>현재</option><option>세종</option></select></div>
+    </div>
+    <label>제품 (링크 걸 것)</label><input id="f_product">
+    <label>대본 원문</label><textarea id="f_body" style="min-height:200px"></textarea>
+    <label>꼭 찍어야 할 장면 3~4개</label><textarea id="f_must_shots"></textarea>
+    <label>메모</label><textarea id="f_memo"></textarea>
+    <div style="margin-top:12px"><button class="primary" id="saveBtn">저장</button></div>
+
+    <h2>진행</h2>
+    <div id="progressNow"></div>
+    <ul class="steps" id="steps"></ul>
+    <div class="row">
+      <button class="primary" id="nextBtn">다음 단계 완료 체크</button>
+      <button id="prevBtn">한 단계 되돌리기</button>
+    </div>
+    <div style="margin-top:24px"><button id="delBtn" style="color:#c00">대본 삭제</button></div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = "https://ndyygluwlfeqibpdhnjk.supabase.co";
+const SUPABASE_KEY = "sb_publishable_RuA_IM5-e9UO5PBdktLYqw_R4qnfryP";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// stage: 체크된 마지막 단계. 0이면 대본 작성 중.
+const STAGES = [
+  {pct:0,   label:"대본 작성 중",                      next:"대본 완성",                    who:null},
+  {pct:25,  label:"ㄱ 대본 완성",                      next:"ㄴ 촬영 · 원본 클라우드 공유",   who:"세종"},
+  {pct:50,  label:"ㄴ 촬영 완료",                      next:"ㄷ TTS 나레이션 · 컷편집 · 자막", who:"현재"},
+  {pct:75,  label:"ㄷ 1차 편집 완료",                  next:"ㄹ 효과음 · 자막효과 · 검수 · 드라이브 업로드", who:"세종"},
+  {pct:95,  label:"ㄹ 최종 편집 · 드라이브 업로드 완료", next:"플랫폼 업로드",                who:"현재"},
+  {pct:100, label:"업로드 완료",                       next:null,                           who:null},
+];
+const whoCls = w => w==="세종"?"sj":w==="현재"?"hj":"none";
+// 0단계(작성 중)는 작성자가 할 일
+const ownerOf = s => s.stage===0 ? s.author : STAGES[s.stage].who;
+
+let rows = [], cur = null, filter = "진행 중";
+const $ = id => document.getElementById(id);
+const show = id => ["login","list","detail"].forEach(x => $(x).classList.toggle("hide", x!==id));
+const esc = t => (t||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function load(){
+  const {data, error} = await sb.from("scripts").select("*").order("updated_at",{ascending:false});
+  if(error){ alert("불러오기 실패: "+error.message); return; }
+  rows = data; renderList();
+}
+
+function renderList(){
+  const todo = w => rows.filter(r => r.stage<5 && ownerOf(r)===w)
+    .map(r => `<a data-id="${r.id}">${esc(r.title||"(제목 없음)")} · ${STAGES[r.stage].pct}%</a>`).join("") || `<div class="meta">없음</div>`;
+  $("todoSJ").innerHTML = todo("세종");
+  $("todoHJ").innerHTML = todo("현재");
+
+  const F = ["진행 중","작성 중","완료","전체"];
+  $("filters").innerHTML = F.map(f => `<button class="${f===filter?'on':''}" data-f="${f}">${f}</button>`).join("");
+  const list = rows.filter(r => filter==="전체" || (filter==="완료" ? r.stage===5 : filter==="작성 중" ? r.stage===0 : r.stage>0 && r.stage<5));
+  $("cards").innerHTML = list.map(r => {
+    const st = STAGES[r.stage], w = ownerOf(r), done = r.stage===5;
+    return `<div class="card ${done?'done':whoCls(w)}" data-id="${r.id}">
+      <div class="row" style="justify-content:space-between">
+        <span class="t">${esc(r.title||"(제목 없음)")}</span>
+        ${done?'<span class="who none">완료</span>':`<span class="who ${whoCls(w)}">${w||"-"}</span>`}
+      </div>
+      <div class="meta">${esc(r.plan)} ${r.product?"· "+esc(r.product):""}</div>
+      <div class="meta">${done?"업로드 완료":"다음: "+esc(st.next)} · ${st.pct}%</div>
+      <div class="bar"><i style="width:${st.pct}%;background:${done?'#bbb':w==='세종'?'var(--sj)':'var(--hj)'}"></i></div>
+    </div>`;
+  }).join("") || `<div class="meta">대본이 없다.</div>`;
+}
+
+function open(id){
+  cur = rows.find(r => r.id===id); if(!cur) return;
+  ["title","plan","product","body","must_shots","memo"].forEach(k => $("f_"+k).value = cur[k]||"");
+  $("f_author").value = cur.author||"현재";
+  $("savedMsg").textContent = "";
+  renderSteps(); show("detail"); window.scrollTo(0,0);
+}
+
+function renderSteps(){
+  const s = cur.stage, w = ownerOf(cur);
+  $("progressNow").innerHTML = s===5 ? `<b>100% 완료</b>`
+    : `<b>${STAGES[s].pct}%</b> · 다음: ${esc(STAGES[s].next)} <span class="who ${whoCls(w)}">${w}</span>`;
+  $("steps").innerHTML = STAGES.slice(1).map((st,i) => {
+    const n = i+1, t = cur.stage_log?.[n];
+    return `<li class="${n<=s?'ok':''} ${n===s+1?'cur':''}">${n<=s?'✓':'○'} ${esc(st.label)} ${t?`<span class="meta">${new Date(t).toLocaleString('ko-KR')}</span>`:""}</li>`;
+  }).join("");
+  $("nextBtn").disabled = s>=5; $("prevBtn").disabled = s<=0;
+}
+
+async function save(patch){
+  const {data, error} = await sb.from("scripts").update(patch).eq("id",cur.id).select().single();
+  if(error){ alert("저장 실패: "+error.message); return false; }
+  Object.assign(cur, data); rows = rows.map(r => r.id===cur.id?cur:r);
+  $("savedMsg").textContent = "저장됨 "+new Date().toLocaleTimeString('ko-KR');
+  return true;
+}
+
+$("saveBtn").onclick = () => save({
+  title:$("f_title").value, plan:$("f_plan").value, product:$("f_product").value,
+  author:$("f_author").value, body:$("f_body").value, must_shots:$("f_must_shots").value, memo:$("f_memo").value
+});
+$("nextBtn").onclick = async () => {
+  const n = cur.stage+1; if(n>5) return;
+  if(!confirm(`"${STAGES[n].label}" 체크할까?`)) return;
+  const log = {...(cur.stage_log||{}), [n]: new Date().toISOString()};
+  if(await save({stage:n, stage_log:log})) renderSteps();
+};
+$("prevBtn").onclick = async () => {
+  if(cur.stage<=0 || !confirm("한 단계 되돌릴까?")) return;
+  const log = {...(cur.stage_log||{})}; delete log[cur.stage];
+  if(await save({stage:cur.stage-1, stage_log:log})) renderSteps();
+};
+$("delBtn").onclick = async () => {
+  if(!confirm("이 대본을 삭제할까? 되돌릴 수 없다.")) return;
+  const {error} = await sb.from("scripts").delete().eq("id",cur.id);
+  if(error) return alert("삭제 실패: "+error.message);
+  show("list"); load();
+};
+$("newBtn").onclick = async () => {
+  const {data, error} = await sb.from("scripts").insert({title:"새 대본"}).select().single();
+  if(error) return alert("생성 실패: "+error.message);
+  rows.unshift(data); open(data.id);
+};
+$("backBtn").onclick = () => { show("list"); load(); };
+document.addEventListener("click", e => {
+  const f = e.target.closest("[data-f]"); if(f){ filter = f.dataset.f; renderList(); return; }
+  const c = e.target.closest("[data-id]"); if(c && !$("list").classList.contains("hide")) open(c.dataset.id);
+});
+$("loginBtn").onclick = async () => {
+  $("loginMsg").textContent = "";
+  const {error} = await sb.auth.signInWithPassword({email:$("email").value.trim(), password:$("pw").value});
+  if(error) $("loginMsg").textContent = "로그인 실패: "+error.message; else start();
+};
+$("logoutBtn").onclick = async () => { await sb.auth.signOut(); show("login"); };
+document.addEventListener("visibilitychange", () => { if(!document.hidden && !$("list").classList.contains("hide")) load(); });
+
+async function start(){ show("list"); await load(); }
+sb.auth.getSession().then(({data}) => data.session ? start() : show("login"));
+</script>
+</body>
+</html>

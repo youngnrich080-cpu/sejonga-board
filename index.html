@@ -26,6 +26,9 @@
   .card{background:#fff;border:1px solid var(--line);border-left-width:6px;border-radius:12px;padding:12px;margin:8px 0;cursor:pointer}
   .card.sj{border-left-color:var(--sj)} .card.hj{border-left-color:var(--hj)} .card.done{border-left-color:#bbb;opacity:.7}
   .card .t{font-weight:600}
+  .card .cardIn{display:flex;gap:10px;align-items:flex-start}
+  .card .cardIn>div{flex:1;min-width:0}
+  .card img.thumb{flex:none;height:64px;width:auto;max-width:96px;object-fit:cover;border-radius:8px;background:#eee}
   .meta{font-size:13px;color:var(--sub);margin-top:4px}
   .bar{height:8px;background:#eee;border-radius:4px;margin-top:8px;overflow:hidden}
   .bar i{display:block;height:100%}
@@ -139,7 +142,8 @@ function renderList(){
   const list = rows.filter(r => filter==="전체" || (filter==="완료" ? r.stage===5 : filter==="작성 중" ? r.stage===0 : r.stage>0 && r.stage<5));
   $("cards").innerHTML = list.map(r => {
     const st = STAGES[r.stage], w = ownerOf(r), done = r.stage===5;
-    return `<div class="card ${done?'done':whoCls(w)}" data-id="${r.id}">
+    const th = typeof r.thumb==="string" && r.thumb.startsWith("data:image/") ? `<img class="thumb" alt="" src="${r.thumb.replace(/"/g,"")}">` : "";  // 편집기(Devis)가 넣는 카드 썸네일(긴 변 240px)
+    return `<div class="card ${done?'done':whoCls(w)}" data-id="${r.id}"><div class="cardIn">${th}<div>
       <div class="row" style="justify-content:space-between">
         <span class="t">${esc(r.title||"(제목 없음)")}</span>
         ${done?'<span class="who none">완료</span>':`<span class="who ${whoCls(w)}">${w||"-"}</span>`}
@@ -147,7 +151,7 @@ function renderList(){
       <div class="meta">${esc(r.plan)} ${r.product?"· "+esc(r.product):""}</div>
       <div class="meta">${done?"업로드 완료":"다음: "+esc(st.next)} · ${st.pct}%</div>
       <div class="bar"><i style="width:${st.pct}%;background:${done?'#bbb':w==='세종'?'var(--sj)':'var(--hj)'}"></i></div>
-    </div>`;
+    </div></div></div>`;
   }).join("") || `<div class="meta">대본이 없다.</div>`;
 }
 

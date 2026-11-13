@@ -26,7 +26,7 @@ const BODY = `[개요]
 const THUMB = "data:image/svg+xml;base64," + Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="135"><rect width="240" height="135" fill="#f4a261"/><circle cx="120" cy="68" r="40" fill="#e76f51"/></svg>').toString("base64");
 const now = new Date().toISOString();
 const ROWS = [
-  { id: "a1", title: "만 원 점심 챌린지", plan: "A 식비 챌린지", product: "보온 도시락", author: "현재", body: BODY, must_shots: "가게 간판\n메뉴판 손가락\n계산대 영수증", memo: "", stage: 1, stage_log: { 1: now }, thumb: THUMB, updated_at: now },
+  { id: "a1", title: "만 원 점심 챌린지", plan: "A 식비 챌린지", product: "보온 도시락", author: "현재", body: BODY, must_shots: "☑ 가게 간판\n☐ 메뉴판 손가락\n☐ 계산대 영수증\n영수증은 꼭 세로로", memo: "", stage: 1, stage_log: { 1: now }, thumb: THUMB, updated_at: now },
   { id: "a2", title: "편의점 3천 원 저녁", plan: "A 식비 챌린지", product: "", author: "세종", body: "-편의점-\n삼각김밥 하나", must_shots: "", memo: "", stage: 0, stage_log: {}, updated_at: now },
   { id: "a3", title: "자취방 냉장고 털기", plan: "B 자취", product: "밀폐용기", author: "현재", body: "", must_shots: "", memo: "", stage: 2, stage_log: { 1: now, 2: now }, updated_at: now },
 ];

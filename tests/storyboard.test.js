@@ -78,3 +78,13 @@ test("대본만: 나레이션·후킹만, 컷 번호 그대로", () => {
     [4, ["남은 돈은 2천 원!"]],
   ]);
 });
+
+test("꼭 찍어야 할 장면: ☑ 체크됨, ☐ 빈 칸, 나머지 글", () => {
+  const { mustParse } = new Function(code + "; return {mustParse};")();
+  assert.deepStrictEqual(mustParse("☑ 가게 간판\r\n☐ 메뉴판 손가락\n\n그냥 메모\n☑없이붙음"), [
+    { box: true, on: true, text: "가게 간판" },
+    { box: true, on: false, text: "메뉴판 손가락" },
+    { box: false, on: false, text: "그냥 메모" },
+    { box: false, on: false, text: "☑없이붙음" },
+  ]);
+});

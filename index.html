@@ -56,7 +56,11 @@
   .sbOv ol{margin:0;padding-left:22px}
   .sbOv li{margin:4px 0}
   .sbOv .how{color:var(--sub)}
-  .sbMust{background:var(--sj-bg);border-radius:12px;padding:12px;margin:8px 0;white-space:pre-wrap}
+  .sbMust{background:var(--sj-bg);border-radius:12px;padding:12px;margin:8px 0}
+  .ms{display:flex;gap:8px;align-items:flex-start;margin:4px 0;word-break:break-word;white-space:pre-wrap}
+  .ms .ck{flex:none;width:20px;height:20px;margin-top:1px;border:2px solid var(--sj);border-radius:5px;background:#fff;display:flex;align-items:center;justify-content:center}
+  .ms.on .ck{background:var(--sj)}
+  .ms.on>span:last-child{color:var(--sub);text-decoration:line-through}
   .sbTr{display:flex;align-items:center;gap:8px;margin:16px 0 6px;font-weight:700;font-size:14px}
   .sbTr::before,.sbTr::after{content:"";flex:1;height:1px;background:#ccc}
   .sbCut{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0}
@@ -253,9 +257,17 @@ function sbScript(body){
   return sbParse(body).cuts.map((c,i) => ({no:i+1, name:c.name,
     lines: c.left.filter(x => x.type==="narr" && x.text.trim()).map(x => ({hook:x.hook, text:x.text.trim()}))}));
 }
+// 꼭 찍어야 할 장면: '☑ ' 줄 = 체크됨, '☐ ' 줄 = 빈 칸, 나머지 = 그냥 글 (Devis 저장 형식)
+function mustParse(t){
+  return String(t||"").replace(/\r\n?/g,"\n").split("\n").filter(x => x.trim()).map(x =>
+    x.startsWith("☑ ") ? {box:true, on:true, text:x.slice(2)}
+    : x.startsWith("☐ ") ? {box:true, on:false, text:x.slice(2)}
+    : {box:false, on:false, text:x});
+}
 // ==/SB-PARSER==
 
 const CAM = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h3l2-2h6l2 2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+const CHK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>`;
 const phBox = (sm) => `<div class="ph${sm?" sm":""}">${CAM}<span>사진(PC에 있음)</span></div>`;
 function sbItem(x){
   if(x.type==="narr") return x.text.trim()==="" ? `<div class="ln blank"></div>`
@@ -274,7 +286,8 @@ function renderSB(body){
   let h = "";
   if(ov.length) h += `<div class="sbOv"><h3>개요</h3><ol>${ov.map(o => `<li value="${o.no}">${esc(o.scene)}${o.how?` <span class="how">· ${esc(o.how)}</span>`:""}</li>`).join("")}</ol></div>`;
   const must = $("f_must_shots").value.trim();
-  if(must) h += `<div class="sbMust"><h3>꼭 찍어야 할 장면</h3>${esc(must)}</div>`;
+  if(must) h += `<div class="sbMust"><h3>꼭 찍어야 할 장면</h3>${mustParse(must).map(m =>
+    `<div class="ms${m.box?(m.on?" on":" off"):""}">${m.box?`<span class="ck">${m.on?CHK:""}</span>`:""}<span>${esc(m.text)}</span></div>`).join("")}</div>`;
   h += cuts.map((c,i) => `${c.name!==null?`<div class="sbTr">${esc(c.name)}</div>`:""}<div class="sbCut" data-cut="${i+1}">
     <div class="sbL"><div class="sbNo">${i+1}</div><div class="sbLines">${c.left.map(sbItem).join("")}</div></div>
     <div class="sbR"><div class="lb">화면</div>${c.right.map(sbItem).join("")}</div></div>`).join("");

@@ -28,7 +28,7 @@ const now = new Date().toISOString();
 const ROWS = [
   { id: "a1", title: "만 원 점심 챌린지", plan: "A 식비 챌린지", product: "보온 도시락", author: "현재", body: BODY, must_shots: "☑ 가게 간판\n☐ 메뉴판 손가락\n☐ 계산대 영수증\n영수증은 꼭 세로로", memo: "", stage: 1, stage_log: { 1: now }, thumb: THUMB, updated_at: now },
   { id: "a2", title: "편의점 3천 원 저녁", plan: "A 식비 챌린지", product: "", author: "세종", body: "-편의점-\n삼각김밥 하나", must_shots: "", memo: "", stage: 0, stage_log: {}, updated_at: now },
-  { id: "a3", title: "자취방 냉장고 털기", plan: "B 자취", product: "밀폐용기", author: "현재", body: "", must_shots: "", memo: "", stage: 2, stage_log: { 1: now, 2: now }, updated_at: now },
+  { id: "a3", title: "자취방 냉장고 털기", plan: "B 자취", product: "https://www.coupang.com/vp/products/7972192564?itemId=22086212956&vendorItemId=89133250739&pickType=COU_PICK&q=%EB%B8%8C%EB%9E%9C%EB%93%9C&searchId=95b677c533083978&sourceType=search&rank=0&itemsCount=36&searchRank=0", author: "현재", body: "", must_shots: "", memo: "", stage: 2, stage_log: { 1: now, 2: now }, updated_at: now },
 ];
 const SESSION = { access_token: "fake", refresh_token: "fake", token_type: "bearer", expires_in: 3600 * 24 * 365,
   expires_at: Math.floor(Date.now() / 1000) + 3600 * 24 * 365, user: { id: "u1", email: "test@example.com", aud: "authenticated", role: "authenticated" } };

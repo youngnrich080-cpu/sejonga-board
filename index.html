@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>세종아 보드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
   :root{--sj:#0FB981;--sj-bg:#E7F7F0;--hj:#2F6FEB;--hj-bg:#E8F0FE;--line:#E5E7EB;--ink:#141618;--sub:#6A7075}
   *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo",sans-serif;color:var(--ink);background:#F7F8FA}
+  body{margin:0;font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;color:var(--ink);background:#F7F8FA}
   .wrap{max-width:640px;margin:0 auto;padding:16px}
   h1{font-size:20px;margin:4px 0 12px}
   h2{font-size:16px;margin:20px 0 8px}
@@ -38,6 +39,7 @@
   .steps li{display:flex;gap:8px;align-items:center;padding:8px;border-radius:10px;margin:4px 0;background:#fff;border:1px solid var(--line)}
   .steps li.cur{outline:2px solid #111}
   .steps li.ok{color:#999}
+  .steps li .sw{margin-left:auto;flex:none;font-size:12px;color:#6A7075;padding-left:8px}
   .steps li.ok .lbl{text-decoration:line-through}
   .tabs{display:flex;gap:6px;flex-wrap:wrap}
   .tabs button.on{background:#111;color:#fff}
@@ -59,6 +61,7 @@
   .sbOv li{margin:4px 0}
   .sbOv .how{color:#6A7075}
   .sbMust{background:var(--sj-bg);border-radius:12px;padding:12px;margin:8px 0}
+  .mcnt{color:#0FB981;font-weight:700;margin-left:6px}
   .ms{display:flex;gap:8px;align-items:center;margin:4px 0;word-break:break-word;white-space:pre-wrap}
   .ms .ck{flex:none;width:20px;height:20px;border:2px solid #0FB981;border-radius:5px;background:#fff;display:flex;align-items:center;justify-content:center}
   .ms.on .ck{background:#0FB981}
@@ -123,6 +126,7 @@
     /* 진행 칸 */
     .steps li{min-height:48px;font-size:15px}
     .steps li .meta{font-size:15px}
+    .steps li .sw{font-size:13px;color:#5A6066}
     /* 컷 카드: 번호 위, 글 아래 전체 폭, 빈 화면 칸 숨김 */
     .sbCut{display:block;padding:16px;margin:12px 0}
     .sbL,.sbR{padding:0}
@@ -331,7 +335,8 @@ function renderSB(body){
   let h = "";
   if(ov.length) h += `<div class="sbOv"><h3>개요</h3><ol>${ov.map(o => `<li value="${o.no}">${esc(o.scene)}${o.how?` <span class="how">· ${esc(o.how)}</span>`:""}</li>`).join("")}</ol></div>`;
   const must = $("f_must_shots").value.trim();
-  if(must) h += `<div class="sbMust"><h3>꼭 찍어야 할 장면</h3>${mustParse(must).map(m =>
+  const ml = mustParse(must), mb = ml.filter(m => m.box);
+  if(must) h += `<div class="sbMust"><h3>꼭 찍어야 할 장면${mb.length?` <span class="mcnt">${mb.filter(m => m.on).length}/${mb.length} 찍음</span>`:""}</h3>${ml.map(m =>
     `<div class="ms${m.box?(m.on?" on":" off"):""}">${m.box?`<span class="ck">${m.on?CHK:""}</span>`:""}<span>${esc(m.text)}</span></div>`).join("")}</div>`;
   h += cuts.map((c,i) => `${c.name!==null?`<div class="sbTr">${esc(c.name)}</div>`:""}<div class="sbCut" data-cut="${i+1}">
     <div class="sbL"><div class="sbNo">${i+1}</div><div class="sbLines">${c.left.map(sbItem).join("")}</div></div>
@@ -402,7 +407,8 @@ function renderSteps(){
     : `<b>${STAGES[s].pct}%</b> · 다음: ${esc(STAGES[s].next)} <span class="who ${whoCls(w)}">${w}</span>`;
   $("steps").innerHTML = STAGES.slice(1).map((st,i) => {
     const n = i+1, t = cur.stage_log?.[n];
-    return `<li class="${n<=s?'ok':''} ${n===s+1?'cur':''}">${n<=s?'✓':'○'} <span class="lbl">${esc(st.label)}</span> ${t?`<span class="meta">${new Date(t).toLocaleString('ko-KR')}</span>`:""}</li>`;
+    const who = n===1 ? cur.author : STAGES[n-1].who;  // INTEGRATION.md 표의 '다음 담당'
+    return `<li class="${n<=s?'ok':''} ${n===s+1?'cur':''}">${n<=s?'✓':'○'} <span class="lbl">${esc(st.label)}</span> ${t?`<span class="meta">${new Date(t).toLocaleString('ko-KR')}</span>`:""}<span class="sw">${esc(who||"")}</span></li>`;
   }).join("");
   $("nextBtn").disabled = s>=5; $("prevBtn").disabled = s<=0;
 }

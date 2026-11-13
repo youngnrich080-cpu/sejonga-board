@@ -1,6 +1,6 @@
 // 폰(390x844)·PC(1400x900) 화면 찍기 + 가로 스크롤·글자(13px, TTS·자막 표시 11px)·누르는 곳(44px) 확인.
 // Supabase는 page.route로 가짜 답을 준다(실제 데이터 안 건드림).
-// 실행: SUPABASE_UMD=<supabase-js@2.45.4 dist/umd/supabase.js 경로> OUT=<사진 폴더> node tests/screens.js
+// 실행: [PRETENDARD_DIR=<pretendard dist/web/variable 경로>] SUPABASE_UMD=<supabase-js@2.45.4 dist/umd/supabase.js 경로> OUT=<사진 폴더> node tests/screens.js
 const { chromium } = require("playwright");
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");
@@ -39,7 +39,18 @@ async function run(name, viewport, mobile) {
   const errors = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.route("https://board.test/**", r => r.fulfill({ contentType: "text/html", body: fs.readFileSync(path.join(ROOT, "index.html")) }));
-  await page.route("https://cdn.jsdelivr.net/**", r => r.fulfill({ contentType: "application/javascript", body: fs.readFileSync(UMD) }));
+  await page.route("https://cdn.jsdelivr.net/**", r => {
+    const u = r.request().url();
+    if (u.includes("supabase-js")) return r.fulfill({ contentType: "application/javascript", body: fs.readFileSync(UMD) });
+    // Pretendard: PRETENDARD_DIR(npm pretendard@1.3.9 의 dist/web/variable)이 있으면 그 파일로, 없으면 막음
+    const m = u.match(/dist\/web\/variable\/(.+)$/);
+    if (m && process.env.PRETENDARD_DIR) {
+      let f = path.join(process.env.PRETENDARD_DIR, m[1]);
+      if (!fs.existsSync(f)) f = f.replace(".min.css", ".css");  // npm 판에는 .min 이 없음
+      return r.fulfill({ path: f });
+    }
+    return r.abort();
+  });
   await page.route("https://ndyygluwlfeqibpdhnjk.supabase.co/**", r => {
     if (r.request().url().includes("/rest/v1/scripts")) return r.fulfill({ contentType: "application/json", body: JSON.stringify(ROWS) });
     return r.fulfill({ status: 200, contentType: "application/json", body: "{}" });
@@ -47,6 +58,7 @@ async function run(name, viewport, mobile) {
   await page.addInitScript(s => localStorage.setItem("sb-ndyygluwlfeqibpdhnjk-auth-token", s), JSON.stringify(SESSION));
   await page.goto("https://board.test/");
   await page.waitForSelector("#cards .card");
+  await page.evaluate(() => document.fonts.ready);
 
   const check = async label => page.evaluate(([label, mobile]) => {
     const out = { label, hscroll: document.documentElement.scrollWidth > innerWidth, small: [], tiny: [] };
@@ -66,12 +78,16 @@ async function run(name, viewport, mobile) {
   await full("1-list", "목록");
   await page.click('.card[data-id="a1"]');
   await page.waitForSelector(".sbCut");
+  await page.evaluate(() => document.fonts.ready);
   await full("2-storyboard", "스토리보드");
   await page.click('#vtabs [data-v="scr"]');
   await full("3-script", "대본만");
   await page.click('#vtabs [data-v="txt"]');
   await full("4-text", "글");
   const counts = await page.evaluate(() => { setView("sb"); return [...document.querySelectorAll(".sbCut")].map(c => c.querySelectorAll(".sbLines>*").length + "/" + c.querySelectorAll(".sbR>div:not(.lb)").length); });
+  await page.evaluate(() => document.fonts.ready);
+  const font = await page.evaluate(() => [...document.fonts].some(f => f.family.includes("Pretendard") && f.status === "loaded"));
+  console.log(name, "Pretendard 불러옴:", font);
   console.log(name, "컷(왼쪽/화면):", counts.join(" "), "오류:", errors.length ? errors : "없음");
   for (const r of results) console.log(name, r.label, "가로스크롤:", r.hscroll, "13px 미만(표시 11px):", r.small.length ? r.small : 0, "44px 미만:", r.tiny.length ? r.tiny : 0);
   await browser.close();

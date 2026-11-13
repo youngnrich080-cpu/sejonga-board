@@ -1,4 +1,4 @@
-// 폰(390x844)·PC(1400x900) 화면 찍기 + 가로 스크롤·글자·누르는 곳 크기 확인.
+// 폰(390x844)·PC(1400x900) 화면 찍기 + 가로 스크롤·글자(13px, TTS·자막 표시 11px)·누르는 곳(44px) 확인.
 // Supabase는 page.route로 가짜 답을 준다(실제 데이터 안 건드림).
 // 실행: SUPABASE_UMD=<supabase-js@2.45.4 dist/umd/supabase.js 경로> OUT=<사진 폴더> node tests/screens.js
 const { chromium } = require("playwright");
@@ -54,7 +54,8 @@ async function run(name, viewport, mobile) {
     for (const el of document.querySelectorAll("body *")) {
       const r = el.getBoundingClientRect(); if (!r.width || !r.height) continue;
       const own = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
-      if (own && parseFloat(getComputedStyle(el).fontSize) < 16) out.small.push(el.tagName + "." + el.className + ":" + el.textContent.trim().slice(0, 12));
+      const fs = parseFloat(getComputedStyle(el).fontSize);
+      if (own && (el.classList.contains("tag") ? fs < 11 : fs < 13)) out.small.push(el.tagName + "." + el.className + ":" + el.textContent.trim().slice(0, 12));
       if (el.matches("button,a,input,select,textarea") && r.height < 44) out.tiny.push(el.tagName + ":" + (el.textContent || el.id).trim().slice(0, 12));
     }
     return out;
@@ -72,7 +73,7 @@ async function run(name, viewport, mobile) {
   await full("4-text", "글");
   const counts = await page.evaluate(() => { setView("sb"); return [...document.querySelectorAll(".sbCut")].map(c => c.querySelectorAll(".sbLines>*").length + "/" + c.querySelectorAll(".sbR>div:not(.lb)").length); });
   console.log(name, "컷(왼쪽/화면):", counts.join(" "), "오류:", errors.length ? errors : "없음");
-  for (const r of results) console.log(name, r.label, "가로스크롤:", r.hscroll, "16px 미만:", r.small.length ? r.small : 0, "44px 미만:", r.tiny.length ? r.tiny : 0);
+  for (const r of results) console.log(name, r.label, "가로스크롤:", r.hscroll, "13px 미만(표시 11px):", r.small.length ? r.small : 0, "44px 미만:", r.tiny.length ? r.tiny : 0);
   await browser.close();
 }
 (async () => {

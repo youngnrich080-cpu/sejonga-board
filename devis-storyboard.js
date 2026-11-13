@@ -1,4 +1,4 @@
-/* devis-storyboard.js — 만든 날짜 2026-11-13 · Devis 커밋 e90cb63
+/* devis-storyboard.js — 만든 날짜 2026-11-13 · Devis 커밋 7ef7640
  * Devis 대본 보드의 스토리보드·대본만 보기·글 보기를 웹 보드에서 똑같이 그리는 파일(보기 전용). build.py 가 만듦 — 손으로 고치지 말 것.
  * 사용: DevisSB.render(el, 대본글, { view: 'sb' | 'tts' | 'text', mustShots }) — 짝 파일 devis-storyboard.css 도 같이 넣기 */
 var DevisSB = (function () {

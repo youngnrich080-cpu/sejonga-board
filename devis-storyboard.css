@@ -1,4 +1,4 @@
-/* devis-storyboard.css — 만든 날짜 2026-11-13 · Devis 커밋 e90cb63
+/* devis-storyboard.css — 만든 날짜 2026-11-13 · Devis 커밋 7ef7640
  * web/style.css 에서 스토리보드·대본만 규칙을 .dsb 범위로 옮긴 것(밝은 화면 값) + tools/webboard/dsb_extra.css(폰 규칙). build.py 가 만듦 — 손으로 고치지 말 것. */
 .dsb {
   --gap:#F1F3F4;
@@ -127,6 +127,7 @@
 .dsb .bdScView .bdScCut.sec, .dsb .bdScView .bdSecH0 { font-size:calc(14.5px * var(--bdz)); }
 .dsb .bdScView .bdHid { display:none !important; }
 .dsb .bdScOv { background:var(--panel2); border-left:0; border-bottom:1px solid var(--line2); box-shadow:none; padding:7px 16px 7px 40px; margin:-14px -16px 8px -40px; border-radius:var(--r-m) var(--r-m) 0 0; }
+.dsb .bdScView.sb .bdScOv { margin-left:-16px; padding-left:16px; }
 .dsb .bdScOv .ovH { gap:6px; flex-wrap:nowrap; min-width:0; }
 .dsb .bdScOv .ovH b { color:var(--text); margin-right:4px; }
 .dsb .bdScOv:not(.ed) .bdOvFlow { flex:1; min-width:0; flex-wrap:nowrap; overflow:hidden; margin:0; gap:2px; }
@@ -276,7 +277,7 @@
   .dsb .bdScPh small, .dsb .bdScPhoto > small { font-size:13px; color:#5A6066; }
   .dsb .bdScCut.sec, .dsb .bdSecH0 { font-size:17px; }
   .dsb .bdSecH small { font-size:15px; color:#5A6066; }
-  .dsb .bdScOv { padding:10px 12px; margin:0 0 12px; border:1px solid var(--line2); border-radius:12px; }
+  .dsb .bdScOv, .dsb .bdScView.sb .bdScOv { padding:10px 12px; margin:0 0 12px; border:1px solid var(--line2); border-radius:12px; }
   .dsb .bdScOv .ovH { flex-wrap:wrap; font-size:15px; }
   .dsb .bdScOv:not(.ed) .bdOvFlow { flex-wrap:wrap; overflow:visible; font-size:15px; }
   .dsb .bdScOv:not(.ed) .bdOvFlow .st { font-size:15px; white-space:normal; }

@@ -1,4 +1,4 @@
-/* devis-storyboard.css — 만든 날짜 2026-11-13 · Devis 커밋 7ef7640
+/* devis-storyboard.css — 만든 날짜 2026-11-13 · Devis 커밋 bf4354e
  * web/style.css 에서 스토리보드·대본만 규칙을 .dsb 범위로 옮긴 것(밝은 화면 값) + tools/webboard/dsb_extra.css(폰 규칙). build.py 가 만듦 — 손으로 고치지 말 것. */
 .dsb {
   --gap:#F1F3F4;
@@ -35,6 +35,7 @@
 .dsb .bdF { text-align:left; align-items:stretch; }
 .dsb .bdF input, .dsb .bdF textarea { width:100%; box-sizing:border-box; border:1px solid var(--line2); border-radius:var(--r-s); background:var(--field); color:var(--text); padding:6px 10px; font:inherit; }
 .dsb .bdF input:focus, .dsb .bdF textarea:focus { outline:none; border-color:var(--acc); box-shadow:0 0 0 3px rgba(15,185,129,.14); }
+.dsb .bdScBar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
 .dsb .bdScMsg { display:flex; }
 .dsb .bdScMsg.me { justify-content:flex-start; }
 .dsb .bdScView { border:1px solid var(--line2); border-radius:var(--r-m); background:var(--field); padding:14px 16px; min-height:160px; height:44vh; min-width:260px; max-width:100%; box-sizing:border-box; overflow-y:auto; resize:both; display:flex; flex-direction:column; gap:4px; color:var(--text); font-weight:400; font-size:13.5px; line-height:1.6; }
@@ -44,12 +45,18 @@
 .dsb .bdScSay:focus-within { background:color-mix(in srgb, var(--acc) 6%, transparent); border-radius:var(--r-s); }
 .dsb .bdScSay.hook { padding:5px 10px; border-left:3px solid #F59E0B; border-radius:0 var(--r-s) var(--r-s) 0; background:color-mix(in srgb, #F59E0B 12%, transparent); font-size:15px; font-weight:800; line-height:1.45; }
 .dsb .bdScSay.hook:focus-within { background:color-mix(in srgb, #F59E0B 18%, transparent); }
+.dsb .bdScUndo { padding:3px 8px; font-size:13px; border-radius:var(--r-s); background:var(--panel2); border:1px solid var(--line2); color:var(--text); }
+.dsb .bdScBar .sep { flex:1; }
 .dsb .bdScMsg { position:relative; align-items:center; gap:4px; }
 .dsb .bdScMsg .bdEd { max-width:78%; padding:7px 11px; border-radius:var(--r-l); background:#efefef; color:#111; font-size:13px; line-height:1.45; min-width:3ch; }
 .dsb .bdScMsg.me .bdEd { background:#7B5CFA; color:#fff; }
 .dsb .bdScMsg.me .bdEd:empty::before { color:#fff; }
 .dsb .bdScMsg.pic img { max-width:62%; max-height:220px; border-radius:var(--r-l); display:block; }
 .dsb .bdScMsg.me { flex-direction:row-reverse; }
+.dsb .bdScDmAdd { display:flex; gap:6px; justify-content:center; padding-top:4px; opacity:0; transition:opacity .12s; }
+.dsb .bdScDm:hover .bdScDmAdd, .dsb .bdScDm:focus-within .bdScDmAdd { opacity:1; }
+.dsb .bdScDmAdd button { font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:var(--r-s); background:#f3f3f3; border:1px dashed #cfcfcf; color:#444; }
+.dsb .bdScDmAdd button:hover { border-color:var(--acc); color:var(--acc-d); }
 .dsb .bdScDmH b .bdEd { color:#111; }
 .dsb .bdScPhoto .bdScImg { cursor:pointer; overflow:hidden; }
 .dsb .bdScPhoto .bdScImg.has { width:auto; height:auto; max-width:200px; background:none; }
@@ -119,6 +126,14 @@
 .dsb .bdTop .bdF { flex:0 1 300px; min-width:170px; }
 .dsb .bdTop .bdF > span:first-child { display:none; }
 .dsb .bdScF { position:relative; }
+.dsb .bdAddBtn { font-size:12px; font-weight:600; padding:4px 10px; border-radius:var(--r-s); background:var(--panel2); border:1px solid var(--line2); color:var(--text); }
+.dsb .bdAddBtn:hover { border-color:var(--acc); }
+.dsb .bdAddMenu { position:absolute; z-index:20; min-width:210px; background:var(--panel); border:1px solid var(--line2); border-radius:var(--r-m); box-shadow:0 10px 28px rgba(0,0,0,.18); padding:6px; display:flex; flex-direction:column; }
+.dsb .bdAddMenu button { display:flex; align-items:center; gap:10px; border:0; background:transparent; color:var(--text); text-align:left; padding:6px 10px; border-radius:var(--r-s); font-size:13px; }
+.dsb .bdAddMenu button span { width:18px; text-align:center; color:var(--muted); }
+.dsb .bdAddMenu button small { margin-left:auto; color:var(--dim); font-size:11px; }
+.dsb .bdAddMenu button:hover { background:var(--panel2); }
+.dsb .bdAddMenu button.ov { border-top:1px solid var(--line); border-radius:0 0 var(--r-s) var(--r-s); margin-top:4px; padding-top:8px; }
 .dsb .bdScView { position:relative; resize:none; padding-left:40px; }
 .dsb .bdScF .bdScView { font-size:calc(13.5px * var(--bdz)); }
 .dsb .bdScF textarea[data-k="body"] { font-size:calc(13px * var(--bdz)); }
@@ -163,12 +178,16 @@
 .dsb .bdSbN { display:flex; justify-content:center; padding-top:10px; font-weight:700; font-size:18px; color:var(--acc); border-right:1px solid var(--line2); }
 .dsb .bdSbL { padding:6px 12px 6px 42px; min-width:0; }
 .dsb .bdScView.sb { padding-left:16px; }
+.dsb .bdSbNew { flex:none; min-height:44px; border:1px dashed var(--line2); border-radius:var(--r-m); background:transparent; color:var(--muted); font-size:13px; }
+.dsb .bdSbNew:hover { border-color:var(--acc); color:var(--text); }
 .dsb .bdSbR { padding:8px 10px; border-left:1px dashed var(--line2); background:color-mix(in srgb, var(--line2) 22%, transparent); display:flex; flex-direction:column; gap:8px; min-width:0; }
 .dsb .bdSbDir { display:flex; gap:10px; align-items:flex-start; margin:0; }
 .dsb .bdSbDir .bdEd { flex:1; min-width:0; }
 .dsb .bdSbPic { flex:none; width:54px; height:96px; border-radius:var(--r-s); border:1px solid var(--line2); background:var(--field, transparent); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; color:var(--muted); cursor:pointer; overflow:hidden; font-size:11px; }
 .dsb .bdSbPic.none { border-style:dashed; }
 .dsb .bdSbPic img { width:100%; height:100%; object-fit:cover; display:block; }
+.dsb .bdSbAdd { display:flex; align-items:center; justify-content:center; gap:6px; width:100%; min-height:44px; background:transparent; border:1px dashed var(--line2); border-radius:var(--r-s); color:var(--muted); font-size:12px; }
+.dsb .bdSbAdd:hover { border-color:var(--acc); color:var(--text); }
 .dsb .bdScDirImg { width:28px; height:50px; object-fit:cover; border-radius:4px; margin-left:8px; flex:none; }
 @media (max-width: 720px) {
   .dsb .bdSbRow { grid-template-columns:32px minmax(0, 1fr); }
@@ -203,10 +222,14 @@
 .dsb .bdSbL { padding-top:8px; padding-bottom:8px; }
 .dsb .bdSbR { padding-top:8px; padding-bottom:8px; }
 .dsb .bdSbN { padding-top:8px; }
+.dsb .bdSbAdd { min-height:0; height:24px; padding:0; border:0; border-radius:0; background:transparent; justify-content:flex-start; align-items:flex-start; gap:10px; text-align:left; color:var(--muted); font-size:13.5px; line-height:24px; }
+.dsb .bdSbAdd:hover { color:var(--text); }
+.dsb .bdSbAdd:hover .bdSbPic { border-color:var(--acc); }
 .dsb .bdSbPic.none { width:24px; height:24px; border-radius:6px; gap:0; margin-top:-1px; }
 .dsb .bdSbPic.none small { display:none; }
 .dsb .bdSbPic.none svg { width:14px; height:14px; }
 .dsb .bdSbR { position:relative; }
+.dsb .bdScBar.ro .bdAddBtn, .dsb .bdScBar.ro .bdScUndo { display:none; }
 .dsb .bdTtsView { font-weight:400; font-size:13px; border:1px solid var(--line2); border-radius:var(--r-m); background:var(--field); min-height:160px; height:44vh; min-width:260px; width:100%; box-sizing:border-box; display:flex; flex-direction:column; overflow:hidden; color:var(--text); }
 .dsb .bdTtsView[hidden] { display:none; }
 .dsb .bdTtsSum { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:8px 14px; border-bottom:1px solid var(--line2); }
@@ -290,4 +313,20 @@
   .dsb .dsbMust { padding:6px 16px 8px; }
   .dsb .dsbMustH { font-size:15px; }
   .dsb .dsbMustI { min-height:44px; font-size:16px; }
+}
+
+/* ---------- 고치기(render 에 edit:true) — 막대 · ＋ 넣기 목록 · 알림 · 폰에서 누르는 곳 44px · 칸 글자 16px ---------- */
+.dsb .bdScView.sb .bdSbL > .bdScSay:only-child > .bdEd:empty::before { content:'대사 쓰기 · 빈 줄에서 Enter = 자막'; }
+.dsb .bdAddMenu button { cursor:pointer; }
+.dsb .dsbToast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:60; max-width:calc(100vw - 32px); padding:10px 16px; border-radius:var(--r-m); background:#141618; color:#fff; font-size:14px; line-height:1.4; }
+@media (max-width: 480px) {
+  .dsb.dsbEdit .bdScView .bdEd { font-size:16px; }
+  .dsb .bdAddBtn, .dsb .bdScUndo { min-height:44px; min-width:44px; font-size:16px; padding:0 14px; }
+  .dsb .bdScUndo { font-size:20px; }
+  .dsb .bdAddMenu { max-width:calc(100% - 8px); }
+  .dsb .bdAddMenu button { min-height:44px; font-size:16px; }
+  .dsb .bdScDmAdd { opacity:1; flex-wrap:wrap; }
+  .dsb .bdScDmAdd button { min-height:44px; font-size:14px; padding:0 14px; }
+  .dsb .bdSbAdd { height:auto; min-height:44px; align-items:center; line-height:1.4; font-size:15px; }
+  .dsb .bdSbNew { min-height:44px; font-size:15px; }
 }

@@ -54,8 +54,14 @@ async function run(name, viewport, mobile) {
     }
     return r.abort();
   });
+  const patches = [];
   await page.route("https://ndyygluwlfeqibpdhnjk.supabase.co/**", r => {
-    if (r.request().url().includes("/rest/v1/scripts")) return r.fulfill({ contentType: "application/json", body: JSON.stringify(ROWS) });
+    const q = r.request();
+    if (q.url().includes("/rest/v1/scripts") && q.method() === "PATCH") {  // 저장: 보낸 글을 잡아 두고 고친 줄을 돌려줌
+      const patch = q.postDataJSON(); patches.push(patch);
+      return r.fulfill({ contentType: "application/json", body: JSON.stringify({ ...ROWS[0], ...patch }) });
+    }
+    if (q.url().includes("/rest/v1/scripts")) return r.fulfill({ contentType: "application/json", body: JSON.stringify(ROWS) });
     return r.fulfill({ status: 200, contentType: "application/json", body: "{}" });
   });
   await page.addInitScript(s => localStorage.setItem("sb-ndyygluwlfeqibpdhnjk-auth-token", s), JSON.stringify(SESSION));
@@ -89,6 +95,38 @@ async function run(name, viewport, mobile) {
   await full("4-text", "글");
   const counts = await page.evaluate(() => { setView("sb"); return [...document.querySelectorAll(".bdSb")].map(c => c.querySelectorAll(".bdSbL>*").length + "/" + c.querySelectorAll(".bdSbR>*").length); });
   await page.evaluate(() => document.fonts.ready);
+
+  // --- 스토리보드에서 바로 고치기: 컷 2 TTS 줄 끝에 글 붙이고 Enter 로 새 줄 → 되돌리기·다시 하기 → ＋ 넣기 목록 → 저장
+  const before = await page.$eval("#f_body", e => e.value);
+  const saveOff = await page.$eval("#saveBtn", b => b.disabled);
+  await page.click('.bdScView [data-t="say"][data-line="5"] .bdEd');
+  await page.keyboard.press("End");
+  await page.keyboard.type(" 진짜로");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("새 줄도 써 봄");
+  await page.waitForTimeout(100);
+  const edited = await page.$eval("#f_body", e => e.value);
+  await page.$eval('.bdScView [data-line="5"]', e => e.scrollIntoView({ block: "center" }));
+  await page.screenshot({ path: path.join(OUT, `${name}-5-edit.png`) });
+  await page.click('[data-undo="-1"]');
+  const undone = await page.$eval("#f_body", e => e.value);
+  await page.click('[data-undo="1"]');
+  const redone = await page.$eval("#f_body", e => e.value);
+  await page.$eval(".bdScBar", e => e.scrollIntoView({ block: "start" }));
+  await page.click(".bdAddBtn");
+  await page.waitForTimeout(100);
+  results.push(await check("＋ 넣기 목록"));
+  await page.screenshot({ path: path.join(OUT, `${name}-6-addmenu.png`) });
+  await page.click(".bdAddBtn");
+  const saveOn = await page.$eval("#saveBtn", b => !b.disabled);
+  await page.click("#saveBtn");
+  await page.waitForFunction(() => document.getElementById("savedMsg").textContent.includes("저장됨"));
+  const sent = patches.at(-1) || {};
+  console.log(name, "고치기: 처음 저장 단추 꺼짐", saveOff, "· 고친 뒤 켜짐", saveOn,
+    "· 대본 원문에 반영", edited.includes("오늘은 여기서 먹어 볼게요 진짜로\n새 줄도 써 봄"),
+    "· 되돌리기", undone !== edited, "· 다시 하기", redone === edited,
+    "· 저장(PATCH) body 같음", sent.body === edited, "· 바뀐 줄 수", edited.split("\n").length - before.split("\n").length);
+  fs.writeFileSync(path.join(OUT, `${name}-saved-body.txt`), sent.body || "");
   const font = await page.evaluate(() => [...document.fonts].some(f => f.family.includes("Pretendard") && f.status === "loaded"));
   console.log(name, "Pretendard 불러옴:", font);
   console.log(name, "컷(왼쪽/화면):", counts.join(" "), "오류:", errors.length ? errors : "없음");

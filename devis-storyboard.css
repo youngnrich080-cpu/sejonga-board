@@ -1,0 +1,292 @@
+/* devis-storyboard.css — 만든 날짜 2026-11-13 · Devis 커밋 e90cb63
+ * web/style.css 에서 스토리보드·대본만 규칙을 .dsb 범위로 옮긴 것(밝은 화면 값) + tools/webboard/dsb_extra.css(폰 규칙). build.py 가 만듦 — 손으로 고치지 말 것. */
+.dsb {
+  --gap:#F1F3F4;
+  --panel:#FFFFFF;
+  --panel2:#F5F6F7;
+  --field:#FFFFFF;
+  --line:#ECEEEF;
+  --line2:#ECEEEF;
+  --text:#141618;
+  --muted:#6A7075;
+  --dim:#8A9096;
+  --acc:#0FB981;
+  --acc-d:#0A8F63;
+  --acc-ink:#FFFFFF;
+  --bad:#C0392B;
+  --warn:#C2620A;
+  --ok:#0A8F63;
+  --r-s:8px;
+  --r-m:12px;
+  --r-l:16px;
+  --r-ctl:6px;
+  --wa:22%;
+  --wb:26%;
+  --ht:56vh;
+  --headw:118px;
+  --selsh:0 -1px 0 #fff, 0 1px 0 #fff, -3px 0 0 #fff, 3px 0 0 #fff;
+  --acc-txt:#087A55;
+  --bdz:1;
+}
+.dsb .bdF { display:flex; flex-direction:column; gap:4px; color:var(--muted); font-size:12px; font-weight:600; }
+.dsb .bdF input { height:34px; }
+.dsb .bdF textarea { resize:vertical; line-height:1.6; font-size:13px; }
+.dsb .bdF input, .dsb .bdF textarea { color:var(--text); }
+.dsb .bdF { text-align:left; align-items:stretch; }
+.dsb .bdF input, .dsb .bdF textarea { width:100%; box-sizing:border-box; border:1px solid var(--line2); border-radius:var(--r-s); background:var(--field); color:var(--text); padding:6px 10px; font:inherit; }
+.dsb .bdF input:focus, .dsb .bdF textarea:focus { outline:none; border-color:var(--acc); box-shadow:0 0 0 3px rgba(15,185,129,.14); }
+.dsb .bdScMsg { display:flex; }
+.dsb .bdScMsg.me { justify-content:flex-start; }
+.dsb .bdScView { border:1px solid var(--line2); border-radius:var(--r-m); background:var(--field); padding:14px 16px; min-height:160px; height:44vh; min-width:260px; max-width:100%; box-sizing:border-box; overflow-y:auto; resize:both; display:flex; flex-direction:column; gap:4px; color:var(--text); font-weight:400; font-size:13.5px; line-height:1.6; }
+.dsb .bdEd { outline:none; min-width:2ch; white-space:pre-wrap; word-break:break-word; cursor:text; }
+.dsb .bdEd:empty::before { content:attr(data-ph); color:var(--muted); opacity:.7; pointer-events:none; }
+.dsb .bdScSay .bdEd { display:block; min-height:1.6em; }
+.dsb .bdScSay:focus-within { background:color-mix(in srgb, var(--acc) 6%, transparent); border-radius:var(--r-s); }
+.dsb .bdScSay.hook { padding:5px 10px; border-left:3px solid #F59E0B; border-radius:0 var(--r-s) var(--r-s) 0; background:color-mix(in srgb, #F59E0B 12%, transparent); font-size:15px; font-weight:800; line-height:1.45; }
+.dsb .bdScSay.hook:focus-within { background:color-mix(in srgb, #F59E0B 18%, transparent); }
+.dsb .bdScMsg { position:relative; align-items:center; gap:4px; }
+.dsb .bdScMsg .bdEd { max-width:78%; padding:7px 11px; border-radius:var(--r-l); background:#efefef; color:#111; font-size:13px; line-height:1.45; min-width:3ch; }
+.dsb .bdScMsg.me .bdEd { background:#7B5CFA; color:#fff; }
+.dsb .bdScMsg.me .bdEd:empty::before { color:#fff; }
+.dsb .bdScMsg.pic img { max-width:62%; max-height:220px; border-radius:var(--r-l); display:block; }
+.dsb .bdScMsg.me { flex-direction:row-reverse; }
+.dsb .bdScDmH b .bdEd { color:#111; }
+.dsb .bdScPhoto .bdScImg { cursor:pointer; overflow:hidden; }
+.dsb .bdScPhoto .bdScImg.has { width:auto; height:auto; max-width:200px; background:none; }
+.dsb .bdScPhoto .bdScImg img { display:block; max-width:200px; max-height:240px; border-radius:var(--r-m); }
+.dsb .bdScShopT em .bdEd, .dsb .bdScShopT b .bdEd { display:inline-block; }
+.dsb .bdScYt .bdEd:empty::before { color:#888; }
+.dsb .bdScCut .bdEd { text-align:left; }
+.dsb .bdScSub .bdEd:empty::before { color:#bbb; }
+.dsb .bdScSay, .dsb .bdScTalk { margin:0; }
+.dsb .bdScTalk b { margin-right:6px; }
+.dsb .bdScP { color:var(--muted); font-style:normal; font-size:12px; }
+.dsb .bdScGap { height:6px; }
+.dsb .bdScCut { display:flex; align-items:center; gap:8px; color:var(--text); opacity:.75; font-size:11.5px; font-weight:700; margin:8px 0; }
+.dsb .bdScCut::before { content:'✂'; font-size:14px; font-weight:400; }
+.dsb .bdScCut::after { content:''; flex:1; border-top:2px dashed currentColor; opacity:.55; }
+.dsb .bdScSubW { display:flex; justify-content:flex-start; }
+.dsb .bdScSub { background:#141618; color:#fff; font-weight:800; padding:4px 12px; border-radius:var(--r-s); font-size:13px; }
+.dsb .bdScDir { display:flex; gap:8px; align-items:flex-start; padding:7px 10px; background:var(--panel2); border-left:3px solid var(--line2); font-size:12.5px; color:var(--muted); }
+.dsb .bdScDir .bdIc { width:14px; height:14px; margin-top:3px; flex:none; }
+.dsb .bdScImg { width:54px; height:54px; flex:none; display:grid; place-items:center; border-radius:var(--r-s); background:var(--panel2); color:var(--muted); }
+.dsb .bdScImg .bdIc { width:22px; height:22px; }
+.dsb .bdScShop { display:flex; gap:12px; align-items:center; align-self:flex-start; width:min(100%, 340px); padding:10px; border:1px solid var(--line2); border-radius:var(--r-m); background:var(--panel); }
+.dsb .bdScShopT { display:flex; flex-direction:column; gap:1px; min-width:0; }
+.dsb .bdScShopT small { color:var(--muted); font-size:11px; }
+.dsb .bdScShopT em { font-style:normal; font-weight:800; font-size:15px; color:#E5322D; }
+.dsb .bdScYt { display:flex; gap:10px; align-self:flex-start; width:min(100%, 380px); padding:10px 12px; border-radius:var(--r-m); background:#0f0f0f; color:#f1f1f1; font-size:13px; }
+.dsb .bdScYt > span:last-child { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.dsb .bdScYt small { color:#aaa; font-size:11px; }
+.dsb .bdScLk { display:flex; align-items:center; gap:4px; }
+.dsb .bdScLk .bdIc { width:12px; height:12px; }
+.dsb .bdScAv { width:28px; height:28px; border-radius:50%; flex:none; background:linear-gradient(135deg, #c9ced6, #9aa1ab); }
+.dsb .bdScDm { align-self:flex-start; width:min(100%, 300px); border:1px solid var(--line2); border-radius:18px; background:#fff; color:#111; padding:10px 12px 12px; display:flex; flex-direction:column; gap:6px; box-shadow:0 2px 10px rgba(0,0,0,.06); margin:4px 0; }
+.dsb .bdScDmH { display:flex; align-items:center; gap:8px; padding-bottom:8px; border-bottom:1px solid #eee; margin-bottom:2px; }
+.dsb .bdScDmH .sep { flex:1; }
+.dsb .bdScDmH small { color:#888; font-size:10.5px; font-weight:700; }
+.dsb .bdScPhoto { display:flex; flex-direction:column; gap:4px; align-self:flex-start; }
+.dsb .bdScPhoto .bdScImg { width:120px; height:120px; background:#f0f0f0; color:#999; border-radius:var(--r-m); }
+.dsb .bdScPhoto small { color:#888; font-size:11px; }
+.dsb .bdScView > .bdScSay:only-child .bdEd:empty::before { content:'대본을 써 주세요'; }
+.dsb .bdScPh { width:170px; height:130px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; border-radius:var(--r-m); border:1.5px dashed #c9c9c9; color:#8a8a8a; cursor:pointer; user-select:none;
+  background:repeating-linear-gradient(135deg, #f4f4f4 0 8px, #e9e9e9 8px 16px); }
+.dsb .bdScPh small { font-size:10.5px; font-weight:600; }
+.dsb .bdScPh .bdIc { width:20px; height:20px; }
+.dsb .bdScPhoto img { display:block; max-width:200px; max-height:240px; border-radius:var(--r-m); cursor:pointer; }
+.dsb .bdScMsg.pic img { cursor:pointer; }
+.dsb .bdScView { outline:none; }
+.dsb .bdScMsg.pic img { -webkit-user-drag:none; user-select:none; }
+.dsb .bdScView { align-self:flex-start; width:100%; }
+.dsb .bdScOv { position:sticky; top:-14px; z-index:3; margin:-14px -16px 8px; flex:none; padding:9px 16px 10px 14px; background:color-mix(in srgb, var(--acc) 7%, var(--field)); border-left:4px solid var(--acc); border-bottom:1px solid color-mix(in srgb, var(--acc) 28%, var(--field)); border-radius:var(--r-m) var(--r-m) 0 0; box-shadow:0 6px 12px -10px rgba(0,0,0,.3); }
+.dsb .bdScOv .ovH { display:flex; align-items:center; gap:8px; font-size:12.5px; line-height:1.4; }
+.dsb .bdScOv .ovH b { color:var(--acc); white-space:nowrap; }
+.dsb .bdScOv .ovH .muted { font-size:11px; }
+.dsb .bdScOv .ovH .sp { flex:1; }
+.dsb .bdScOv .ovH button { font-size:11px; padding:2px 8px; background:var(--field); border:1px solid color-mix(in srgb, var(--acc) 35%, var(--field)); border-radius:var(--r-s); color:var(--acc); white-space:nowrap; }
+.dsb .bdOvFlow { display:flex; flex-wrap:wrap; align-items:stretch; gap:6px 4px; margin-top:7px; }
+.dsb .bdOvFlow .st { display:flex; gap:6px; align-items:flex-start; background:var(--field); border:1px solid color-mix(in srgb, var(--acc) 30%, var(--field)); border-radius:var(--r-s); padding:5px 9px; font-size:12.5px; line-height:1.35; max-width:230px; cursor:pointer; min-width:0; }
+.dsb .bdOvFlow .st:hover { border-color:var(--acc); }
+.dsb .bdOvFlow .st i { font-style:normal; flex:none; width:18px; height:18px; border-radius:50%; background:color-mix(in srgb, var(--acc) 18%, var(--field)); color:var(--acc); font-weight:800; font-size:11px; display:grid; place-items:center; margin-top:1px; }
+.dsb .bdOvFlow .st small { display:block; color:var(--acc); font-size:11px; margin-top:1px; }
+.dsb .bdOvFlow .ar { color:color-mix(in srgb, var(--acc) 50%, var(--field)); align-self:center; font-size:13px; }
+.dsb .bdOvFlow .st.done { opacity:.55; }
+.dsb .bdScOv.cp .bdOvFlow { flex-wrap:nowrap; overflow:hidden; margin-top:5px; }
+.dsb .bdScOv.cp .bdOvFlow .st { padding:3px 8px; white-space:nowrap; flex:0 1 auto; }
+.dsb .bdScOv.cp .bdOvFlow .st > span { overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.dsb .bdScOv.cp .bdOvFlow .st small { display:none; }
+.dsb .bdScOv.cp .ovH .muted { display:none; }
+.dsb .bdTop .bdF { flex:0 1 300px; min-width:170px; }
+.dsb .bdTop .bdF > span:first-child { display:none; }
+.dsb .bdScF { position:relative; }
+.dsb .bdScView { position:relative; resize:none; padding-left:40px; }
+.dsb .bdScF .bdScView { font-size:calc(13.5px * var(--bdz)); }
+.dsb .bdScF textarea[data-k="body"] { font-size:calc(13px * var(--bdz)); }
+.dsb .bdScView .bdScMsg .bdEd, .dsb .bdScView .bdScSub, .dsb .bdScView .bdScYt { font-size:calc(13px * var(--bdz)); }
+.dsb .bdScView .bdScDir, .dsb .bdScView .bdScOv .ovH { font-size:calc(12.5px * var(--bdz)); }
+.dsb .bdScView .bdScCut.sec, .dsb .bdScView .bdSecH0 { font-size:calc(14.5px * var(--bdz)); }
+.dsb .bdScView .bdHid { display:none !important; }
+.dsb .bdScOv { background:var(--panel2); border-left:0; border-bottom:1px solid var(--line2); box-shadow:none; padding:7px 16px 7px 40px; margin:-14px -16px 8px -40px; border-radius:var(--r-m) var(--r-m) 0 0; }
+.dsb .bdScOv .ovH { gap:6px; flex-wrap:nowrap; min-width:0; }
+.dsb .bdScOv .ovH b { color:var(--text); margin-right:4px; }
+.dsb .bdScOv:not(.ed) .bdOvFlow { flex:1; min-width:0; flex-wrap:nowrap; overflow:hidden; margin:0; gap:2px; }
+.dsb .bdScOv:not(.ed) .bdOvFlow .st { background:transparent; border:0; padding:0 4px; color:var(--muted); font-size:12.5px; white-space:nowrap; box-shadow:none; max-width:none; flex:0 1 auto; min-width:0; }
+.dsb .bdScOv:not(.ed) .bdOvFlow .st > span { overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.dsb .bdScOv:not(.ed) .bdOvFlow .st i { background:transparent; width:auto; height:auto; color:inherit; font-weight:600; margin:0 3px 0 0; display:inline; }
+.dsb .bdScOv:not(.ed) .bdOvFlow .st small { display:none; }
+.dsb .bdScOv:not(.ed) .bdOvFlow .st:hover { color:var(--text); }
+.dsb .bdScOv:not(.ed) .bdOvFlow .st.done { opacity:1; }
+.dsb .bdScOv:not(.ed) .bdOvFlow .ar { color:var(--dim); opacity:.6; }
+.dsb .bdScOv .ovH button { background:transparent; border:0; color:var(--muted); padding:2px 6px; }
+.dsb .bdScOv .ovH button:hover { color:var(--text); background:var(--panel); }
+.dsb .bdScOv.ed { background:var(--field); }
+.dsb .bdScOv.ed .ovH { flex-wrap:wrap; }
+.dsb .bdScCut.sec { opacity:1; margin:12px 0 2px; font-size:14.5px; font-weight:700; color:var(--text); }
+.dsb .bdScCut.sec::before, .dsb .bdScCut.sec::after { display:none; }
+.dsb .bdSecH0 { margin:2px 0 2px; font-size:14.5px; font-weight:700; }
+.dsb .bdSecH { display:flex; align-items:baseline; gap:6px; min-width:0; }
+.dsb .bdSecH b { color:var(--muted); font-weight:700; }
+.dsb .bdSecH small { color:var(--muted); font-weight:400; font-size:12px; }
+.dsb .bdSecH .bdSecHid { font-style:normal; color:var(--dim); font-weight:400; font-size:12px; }
+.dsb .bdSecH { cursor:pointer; }
+.dsb .shut .bdSecH b, .dsb .shut .bdSecNm { color:var(--muted); }
+.dsb .bdSecN { flex:none; color:var(--muted); font-size:11px; font-weight:700; }
+.dsb .bdScView .bdOvGap { min-height:0; height:2px; overflow:hidden; }
+.dsb .bdScView .bdOvGap:focus-within { height:auto; }
+.dsb .bdScOv:not(.ed) .bdOvFlow .st i { font-size:inherit; vertical-align:baseline; }
+.dsb .bdScView.sb { display:flex; flex-direction:column; gap:10px; }
+.dsb .bdScView.sb > .bdSb { flex:none; }
+.dsb .bdSb { border:1px solid var(--line2); border-radius:var(--r-m); background:var(--panel, transparent); overflow:hidden; }
+.dsb .bdSb > .bdScCut { margin:0; padding:4px 12px; border-bottom:1px solid var(--line2); }
+.dsb .bdSbRow { display:grid; grid-template-columns:40px minmax(0, 1fr) minmax(224px, 38%); }
+.dsb .bdSbN { display:flex; justify-content:center; padding-top:10px; font-weight:700; font-size:18px; color:var(--acc); border-right:1px solid var(--line2); }
+.dsb .bdSbL { padding:6px 12px 6px 42px; min-width:0; }
+.dsb .bdScView.sb { padding-left:16px; }
+.dsb .bdSbR { padding:8px 10px; border-left:1px dashed var(--line2); background:color-mix(in srgb, var(--line2) 22%, transparent); display:flex; flex-direction:column; gap:8px; min-width:0; }
+.dsb .bdSbDir { display:flex; gap:10px; align-items:flex-start; margin:0; }
+.dsb .bdSbDir .bdEd { flex:1; min-width:0; }
+.dsb .bdSbPic { flex:none; width:54px; height:96px; border-radius:var(--r-s); border:1px solid var(--line2); background:var(--field, transparent); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; color:var(--muted); cursor:pointer; overflow:hidden; font-size:11px; }
+.dsb .bdSbPic.none { border-style:dashed; }
+.dsb .bdSbPic img { width:100%; height:100%; object-fit:cover; display:block; }
+.dsb .bdScDirImg { width:28px; height:50px; object-fit:cover; border-radius:4px; margin-left:8px; flex:none; }
+@media (max-width: 720px) {
+  .dsb .bdSbRow { grid-template-columns:32px minmax(0, 1fr); }
+  .dsb .bdSbR { grid-column:2; border-left:none; border-top:1px dashed var(--line2); }
+}
+.dsb .bdScDir.bdSbDir { border-left:none; background:transparent; padding:0; color:var(--text); }
+.dsb .bdScView.sb > .bdScCut { flex:none; margin:0 6px; }
+.dsb .bdScView.sb .bdSbL > .bdScSay:has(> .bdEd:not(:empty))::before { content:'TTS'; display:inline-block; margin-right:8px; padding:0 6px; border-radius:4px; font-size:10.5px; font-weight:700; line-height:18px; vertical-align:1px; background:color-mix(in srgb, var(--acc) 16%, transparent); color:color-mix(in srgb, var(--acc) 70%, var(--text)); }
+.dsb .bdScView.sb .bdSbL > .bdScSubW::before { content:'자막'; display:inline-block; margin-right:8px; padding:0 6px; border-radius:4px; font-size:10.5px; font-weight:700; line-height:18px; background:color-mix(in srgb, #7c6cf0 16%, transparent); color:color-mix(in srgb, #5a49d6 75%, var(--text)); }
+.dsb .bdScView.sb .bdSbL > .bdScSay, .dsb .bdScView.sb .bdSbL > .bdScSubW { display:flex; align-items:baseline; gap:0; }
+.dsb .bdScView.sb .bdSbL > .bdScSay::before, .dsb .bdScView.sb .bdSbL > .bdScSubW::before { flex:none; }
+.dsb .bdScView.sb .bdSbL > .bdScSay > .bdEd { flex:1; min-width:0; }
+.dsb .bdScView.sb > .bdScCut:not(.sec) { display:none; }
+.dsb .bdScView.sb > .bdSb { border-color:color-mix(in srgb, var(--line2), var(--text) 16%); }
+.dsb .bdScView.sb .bdSbL > .bdScSay > .bdEd:empty, .dsb .bdScView.sb .bdSbL > .bdScSubW .bdEd:empty { min-height:1.6em; display:inline-block; }
+.dsb .bdScView.sb .bdSbL > .bdScSay:only-child > .bdEd:empty::before { content:'대사 쓰기 (TTS) · /자막 · /컷'; color:var(--muted); opacity:.7; }
+.dsb .bdScView.sb .bdSbL { cursor:text; }
+.dsb .bdSbN { flex-direction:column; justify-content:flex-start; align-items:center; gap:6px; }
+.dsb .bdScView.sb .bdSbL > .bdScSay:has(> .bdEd:not(:empty))::before, .dsb .bdScView.sb .bdSbL > .bdScSubW::before { cursor:pointer; }
+.dsb .bdScView.sb .bdSbL > .bdScSubW .bdScSub { background:none; color:var(--text); font-weight:inherit; padding:0; border-radius:0; font-size:inherit; }
+.dsb .bdScView.sb .bdSbL > .bdScSubW .bdScSub .bdEd:empty::before { color:var(--muted); }
+.dsb .bdScView.sb .bdSbL > .bdScSubW .bdScSub { flex:1; min-width:0; }
+.dsb .bdSbDir:has(> .bdSbDirC) { display:grid; grid-template-columns:96px minmax(8em, 1fr); column-gap:10px; row-gap:2px; align-content:start; }
+.dsb .bdSbDir:has(> .bdSbDirC) > .bdEd, .dsb .bdSbDirC { grid-column:2; }
+.dsb .bdScDir.bdSbDirC { display:block; border-left:none; background:transparent; padding:0; margin:0; color:var(--text); }
+.dsb .bdSbDirC .bdEd { display:block; min-height:1.5em; }
+.dsb .bdScView.sb .bdSbL > .bdScSay:has(> .bdEd:focus)::before { content:'TTS'; display:inline-block; flex:none; margin-right:8px; padding:0 6px; border-radius:4px; font-size:10.5px; font-weight:700; line-height:18px; vertical-align:1px; background:color-mix(in srgb, var(--acc) 16%, transparent); color:color-mix(in srgb, var(--acc) 70%, var(--text)); cursor:pointer; }
+.dsb .bdScView.sb .bdSbL > .bdScSay:only-child > .bdEd:empty::before { content:'대사 쓰기 · 빈 줄에서 Enter = 자막 · /컷'; }
+.dsb .bdSbPic:not(.none) { cursor:grab; }
+.dsb .bdScView.sb .bdSbN { cursor:grab; user-select:none; }
+.dsb .bdScView.sb { position:relative; }
+.dsb .bdSbL { padding-top:8px; padding-bottom:8px; }
+.dsb .bdSbR { padding-top:8px; padding-bottom:8px; }
+.dsb .bdSbN { padding-top:8px; }
+.dsb .bdSbPic.none { width:24px; height:24px; border-radius:6px; gap:0; margin-top:-1px; }
+.dsb .bdSbPic.none small { display:none; }
+.dsb .bdSbPic.none svg { width:14px; height:14px; }
+.dsb .bdSbR { position:relative; }
+.dsb .bdTtsView { font-weight:400; font-size:13px; border:1px solid var(--line2); border-radius:var(--r-m); background:var(--field); min-height:160px; height:44vh; min-width:260px; width:100%; box-sizing:border-box; display:flex; flex-direction:column; overflow:hidden; color:var(--text); }
+.dsb .bdTtsView[hidden] { display:none; }
+.dsb .bdTtsSum { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:8px 14px; border-bottom:1px solid var(--line2); }
+.dsb .bdTtsSum .bdTtsTot { font-size:14px; }
+.dsb .bdTtsBody { flex:1; overflow-y:auto; padding:6px 14px 14px; user-select:text; }
+.dsb .bdTtsCut { display:grid; grid-template-columns:34px minmax(0, 1fr) auto; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); }
+.dsb .bdTtsCut:last-child { border-bottom:0; }
+.dsb .bdTtsN { color:var(--acc); font-weight:700; font-size:16px; text-align:center; line-height:1.6; user-select:none; }
+.dsb .bdTtsL p { margin:0; font-size:calc(13.5px * var(--bdz, 1)); line-height:1.7; overflow-wrap:anywhere; }
+.dsb .bdTtsS { color:var(--muted); font-size:12px; white-space:nowrap; line-height:2; user-select:none; }
+.dsb .bdSbPic:not(.none) { flex:none; width:96px; min-width:96px; max-width:96px; height:72px; min-height:72px; max-height:72px; background:#fff; }
+.dsb .bdSbPic:not(.none) img { width:100%; height:100%; max-width:none; min-width:0; object-fit:contain; display:block; }
+.dsb .bdSbDir .bdEd { min-width:8em; }
+.dsb .bdSbDir:has(> .bdSbDirC):has(> .bdSbPic.none) { grid-template-columns:24px minmax(8em, 1fr); }
+.dsb .bdEd:focus, .dsb .bdEd:focus-visible { outline:none; }
+/* 웹 보드 전용 덧붙임(손으로 고치는 원본 — build.py 가 style.css 에서 뽑은 규칙 뒤에 붙임) */
+.dsb, .dsb *, .dsb *::before, .dsb *::after { box-sizing:border-box; }
+.dsb { font:12.5px/1.45 'Pretendard', 'Pretendard Variable', system-ui, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; color:var(--text); -webkit-text-size-adjust:100%; }
+.dsb [hidden] { display:none !important; }
+.dsb svg.bdIc { display:inline-block; }
+/* 보기 전용: 칸 높이는 글 길이대로 · 위에 붙는 개요도 그냥 위에(끈적임 없음) */
+.dsb .bdScView, .dsb .bdTtsView { height:auto; min-height:0; min-width:0; overflow:visible; resize:none; }
+.dsb .bdTtsBody { overflow:visible; }
+.dsb .bdScOv { position:static; }
+.dsb .bdScView.dsbText { display:block; padding:14px 16px; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.7; font-size:13px; user-select:text; }
+.dsb .bdScSay, .dsb .bdScSubW { user-select:text; }
+.dsb .bdScPh { cursor:default; }
+.dsb .bdScPhoto .bdScPh { width:170px; }
+.dsb .bdSbPic:not(.none) { flex-direction:column; gap:4px; text-align:center; }
+.dsb .bdSbPic:not(.none) small { font-size:11px; color:var(--muted); line-height:1.25; }
+/* 꼭 찍을 장면 n/전체 — 끝낸 줄은 초록 체크 + 보통 글자(취소선 없음) */
+.dsb .dsbMust { margin-top:12px; border:1px solid var(--line2); border-radius:var(--r-m); background:var(--panel); padding:6px 16px 8px; color:var(--text); }
+.dsb .dsbMustH { display:flex; align-items:baseline; gap:8px; padding:6px 0; font-size:13px; }
+.dsb .dsbMustN { color:var(--acc-txt, #087A55); font-weight:700; }
+.dsb .dsbMustI { display:flex; align-items:center; gap:10px; min-height:32px; font-size:13px; line-height:1.5; }
+.dsb .dsbMustI i { flex:none; width:18px; height:18px; border-radius:50%; border:1.5px solid #C9CDD1; box-sizing:border-box; }
+.dsb .dsbMustI.done i { border-color:var(--acc); background:var(--acc) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 9.5l2.7 2.7L13 6.8'/%3E%3C/svg%3E") center / 100% no-repeat; }
+
+/* ---------- 폰(480px 이하): 본문 16px · 줄 간격 1.6 · 빈 '화면' 칸 숨김 · 컷 번호 위 · DM·쇼핑 카드 전체 폭 ---------- */
+@media (max-width: 480px) {
+  .dsb { --bdz:1.25; font-size:16px; line-height:1.6; }
+  .dsb .bdScView.sb { padding:0; border:0; background:transparent; gap:12px; font-size:16px; line-height:1.6; }
+  .dsb .bdScView.sb > .bdSb { border-radius:12px; }
+  .dsb .bdSbRow { display:block; padding:16px; }
+  .dsb .bdSbN { display:block; padding:0 0 6px; border:0; font-size:22px; line-height:1.2; text-align:left; cursor:default; }
+  .dsb .bdSbL { padding:0; }
+  .dsb .bdSbR { padding:10px 0 0; border:0; background:transparent; display:block; }
+  .dsb .bdSbR:empty { display:none; }
+  .dsb .bdSbL .bdScSay .bdEd, .dsb .bdSbL .bdScSubW .bdEd, .dsb .bdSbL .bdScSub { font-size:16px; line-height:1.6; }
+  .dsb .bdSbL > .bdScSay::before, .dsb .bdSbL > .bdScSubW::before { font-size:11px; }
+  .dsb .bdSbL > .bdScSay.hook, .dsb .bdSbL > .bdScSay.hook .bdEd { font-size:17px; }
+  .dsb .bdSbDir { display:flex; gap:8px; align-items:flex-start; font-size:15px; color:#5A6066; }
+  .dsb .bdSbDir .bdEd, .dsb .bdSbDirC .bdEd { font-size:15px; line-height:1.5; color:#5A6066; min-width:0; }
+  .dsb .bdSbDir:has(> .bdSbDirC) { grid-template-columns:96px minmax(0, 1fr); }
+  .dsb .bdSbDir:has(> .bdSbDirC):has(> .bdSbPic.none) { grid-template-columns:24px minmax(0, 1fr); }
+  .dsb .bdSbPic:not(.none) small { font-size:13px; }
+  .dsb .bdScDm { width:100%; align-self:stretch; }
+  .dsb .bdScDm .bdScMsg .bdEd { max-width:80%; font-size:15px; line-height:1.5; }
+  .dsb .bdScDmH b, .dsb .bdScDmH b .bdEd { font-size:15px; }
+  .dsb .bdScDmH small { font-size:13px; }
+  .dsb .bdScShop { width:100%; align-self:stretch; }
+  .dsb .bdScShopT small { font-size:13px; color:#5A6066; }
+  .dsb .bdScShopT b, .dsb .bdScShopT b .bdEd { font-size:16px; }
+  .dsb .bdScShopT em, .dsb .bdScShopT em .bdEd { font-size:16px; }
+  .dsb .bdScYt { width:100%; align-self:stretch; }
+  .dsb .bdScYt small { font-size:13px; }
+  .dsb .bdScYt .bdEd { font-size:15px; }
+  .dsb .bdScPh small, .dsb .bdScPhoto > small { font-size:13px; color:#5A6066; }
+  .dsb .bdScCut.sec, .dsb .bdSecH0 { font-size:17px; }
+  .dsb .bdSecH small { font-size:15px; color:#5A6066; }
+  .dsb .bdScOv { padding:10px 12px; margin:0 0 12px; border:1px solid var(--line2); border-radius:12px; }
+  .dsb .bdScOv .ovH { flex-wrap:wrap; font-size:15px; }
+  .dsb .bdScOv:not(.ed) .bdOvFlow { flex-wrap:wrap; overflow:visible; font-size:15px; }
+  .dsb .bdScOv:not(.ed) .bdOvFlow .st { font-size:15px; white-space:normal; }
+  .dsb .bdScView.dsbText { font-size:16px; line-height:1.6; padding:16px; }
+  .dsb .bdTtsView { border-radius:12px; }
+  .dsb .bdTtsSum .bdTtsTot { font-size:15px; }
+  .dsb .bdTtsCut { grid-template-columns:30px minmax(0, 1fr); padding:12px 0; }
+  .dsb .bdTtsN { font-size:22px; line-height:1.3; }
+  .dsb .bdTtsL p { font-size:16px; line-height:1.6; }
+  .dsb .dsbMust { padding:6px 16px 8px; }
+  .dsb .dsbMustH { font-size:15px; }
+  .dsb .dsbMustI { min-height:44px; font-size:16px; }
+}

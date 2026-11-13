@@ -6,6 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>세종아 보드</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="devis-storyboard.css">
 <style>
   :root{--sj:#0FB981;--sj-bg:#E7F7F0;--hj:#2F6FEB;--hj-bg:#E8F0FE;--line:#E5E7EB;--ink:#141618;--sub:#6A7075}
   *{box-sizing:border-box}
@@ -53,65 +54,14 @@
   .vtabs button.on{background:#111;color:#fff;border-color:#111}
   .wrap.wide{max-width:960px}
   .dhead h1{margin:12px 0 2px}
-  /* 스토리보드 (Devis 밝은 화면 값) */
-  #v_sb,#v_scr{color:#141618}
-  .sbOv{background:#fff;border:1px solid #C9CBCD;border-radius:12px;padding:12px;margin:8px 0}
-  .sbOv h3,.sbMust h3{margin:0 0 6px;font-size:14px}
-  .sbOv ol{margin:0;padding-left:22px}
-  .sbOv li{margin:4px 0}
-  .sbOv .how{color:#6A7075}
-  .sbMust{background:var(--sj-bg);border-radius:12px;padding:12px;margin:8px 0}
-  .mcnt{color:#0FB981;font-weight:700;margin-left:6px}
-  .ms{display:flex;gap:8px;align-items:center;margin:4px 0;word-break:break-word;white-space:pre-wrap}
-  .ms .ck{flex:none;width:20px;height:20px;border:2px solid #0FB981;border-radius:5px;background:#fff;display:flex;align-items:center;justify-content:center}
-  .ms.on .ck{background:#0FB981}
-  .sbTr{display:flex;align-items:center;gap:8px;margin:16px 0 6px;font-weight:700;font-size:14px;color:#6A7075}
-  .sbTr::before,.sbTr::after{content:"";flex:1;height:1px;background:#ECEEEF}
-  .sbCut{display:grid;grid-template-columns:1fr 1fr;background:#fff;border:1px solid #C9CBCD;border-radius:12px;margin:10px 0;overflow:hidden}
-  .sbL{padding:12px 14px;min-width:0}
-  .sbNo{color:#0FB981;font-size:18px;font-weight:700;line-height:1.2;margin-bottom:6px}
-  .sbR{background:rgba(236,238,239,.22);border-left:1px solid #ECEEEF;padding:12px 14px;min-width:0}
-  .sbR .lb{font-size:12px;font-weight:700;color:#6A7075;margin-bottom:6px}
-  .ln{margin:4px 0;word-break:break-word;white-space:pre-wrap;line-height:1.5}
-  .ln.blank{height:6px;margin:0}
-  .tag{display:inline-flex;align-items:center;height:18px;font-size:10.5px;font-weight:700;border-radius:4px;padding:0 5px;margin-right:6px;vertical-align:2px}
-  .tag.tts{background:rgba(15,185,129,.16);color:#08875D}
-  .tag.cap{background:rgba(124,108,240,.16);color:#5A49D6}
-  .ln.hook{border-left:3px solid #F59E0B;background:rgba(245,158,11,.12);border-radius:0 8px 8px 0;padding:6px 10px;font-size:15px;font-weight:800}
-  .dm{background:#fff;border:1px solid #C9CBCD;border-radius:18px;padding:10px 12px;margin:8px 0}
-  .dm .hd{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #ECEEEF}
-  .dm .av{flex:none;width:26px;height:26px;border-radius:50%;background:#D5D8DB}
-  .dm .hn{font-weight:700;flex:1;min-width:0}
-  .dm .dt{font-size:11px;font-weight:700;color:#6A7075}
-  .bub{display:flex;flex-direction:column;align-items:flex-start;margin:6px 0}
-  .bub.me{align-items:flex-end}
-  .bub .tx{background:#EFEFEF;color:#111;border-radius:16px;padding:7px 11px;max-width:80%;word-break:break-word}
-  .bub.me .tx{background:#7B5CFA;color:#fff}
-  .shop{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid #C9CBCD;border-radius:12px;padding:10px;margin:8px 0}
-  .shop .ic{flex:none;width:52px;height:52px;border-radius:8px;background:#ECEEEF;color:#6A7075;display:flex;align-items:center;justify-content:center}
-  .shop .sh{font-size:12px;color:#6A7075}
-  .shop .nm{font-weight:700}
-  .shop .pr{color:#E5322D;font-size:15px;font-weight:800}
-  .cmt{background:#fff;border:1px solid #C9CBCD;border-radius:12px;padding:10px;margin:8px 0}
-  .cmt .nk{font-weight:700;font-size:13px}
-  .cmt .dt{font-size:11px;font-weight:700;color:#6A7075;margin-right:6px}
-  .memo{margin:4px 0;word-break:break-word;color:#6A7075}
-  .scn{display:flex;gap:6px;align-items:flex-start;font-size:12.5px;margin:4px 0;color:#141618}
-  .scn svg{flex:none;color:#6A7075;margin-top:1px}
-  .ph{display:flex;align-items:center;justify-content:center;gap:6px;min-height:72px;border:2px dashed #C9CBCD;border-radius:10px;color:#6A7075;background:#fff;margin:4px 0;font-size:13px}
-  .ph svg{flex:none}
-  .ph.sm{min-height:44px;width:160px;max-width:80%}
-  .scrOnly .cutBlk{background:#fff;border:1px solid #C9CBCD;border-radius:12px;padding:12px 14px;margin:10px 0}
-  .scrOnly p{margin:4px 0;line-height:1.5}
-
   /* 폰 */
   @media (max-width:600px){
     body{font-size:16px;line-height:1.6}
     .wrap,.wrap.wide{padding:12px 16px}
     button{min-height:44px}
     input,textarea,select{font-size:16px;min-height:44px}
-    label,.meta,.saved,.msg,.who,.box h3,.box a,.sbOv h3,.sbMust h3,.sbTr{font-size:16px}
-    .meta,.sbOv .how,.memo,.sbTr,.shop .sh{color:#5A6066}
+    label,.meta,.saved,.msg,.who,.box h3,.box a{font-size:16px}
+    .meta{color:#5A6066}
     #list>.row:first-child{flex-wrap:wrap}
     .todo{grid-template-columns:1fr}
     .box a{min-height:44px;display:flex;align-items:center;padding:0}
@@ -127,20 +77,6 @@
     .steps li{min-height:48px;font-size:15px}
     .steps li .meta{font-size:15px}
     .steps li .sw{font-size:13px;color:#5A6066}
-    /* 컷 카드: 번호 위, 글 아래 전체 폭, 빈 화면 칸 숨김 */
-    .sbCut{display:block;padding:16px;margin:12px 0}
-    .sbL,.sbR{padding:0}
-    .sbNo{font-size:22px}
-    .sbR{background:none;border:0;margin-top:8px}
-    .sbR.empty,.sbR .lb{display:none}
-    .ln.hook{font-size:17px}
-    .tag{font-size:11px}
-    .bub .tx{font-size:15px}
-    .shop .sh,.dm .dt,.cmt .dt,.cmt .nk{font-size:13px}
-    .scn{font-size:15px}
-    .ph{font-size:15px}
-    .ms{min-height:44px}
-    .scrOnly .cutBlk{padding:16px;margin:12px 0}
   }
 </style>
 </head>
@@ -179,9 +115,8 @@
       <span class="saved" id="savedMsg"></span>
     </div>
     <div class="dhead"><h1 id="d_title"></h1><div class="meta" id="d_meta"></div></div>
-    <div class="vtabs" id="vtabs"><button data-v="sb">스토리보드</button><button data-v="scr">대본만</button><button data-v="txt">글</button></div>
-    <div id="v_sb"></div>
-    <div id="v_scr" class="scrOnly"></div>
+    <div class="vtabs" id="vtabs"><button data-v="sb">스토리보드</button><button data-v="tts">대본만</button><button data-v="txt">글</button></div>
+    <div id="v_dsb"></div>
     <div id="v_txt">
     <label>제목</label><input id="f_title">
     <div class="row">
@@ -207,6 +142,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="devis-storyboard.js"></script>
 <script>
 const SUPABASE_URL = "https://ndyygluwlfeqibpdhnjk.supabase.co";
 const SUPABASE_KEY = "sb_publishable_RuA_IM5-e9UO5PBdktLYqw_R4qnfryP";
@@ -230,134 +166,15 @@ const $ = id => document.getElementById(id);
 const show = id => { ["login","list","detail"].forEach(x => $(x).classList.toggle("hide", x!==id)); if(id!=="detail") document.querySelector(".wrap").classList.remove("wide"); };
 const esc = t => (t||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-// ==SB-PARSER== 스토리보드 글 읽기 (Devis bdScParse 규칙과 같게). 시험: tests/storyboard.test.js
-const SB_PHOTO = /사진\s*[:：]\s*([\w.-]+\.(?:jpe?g|png|webp|gif|heic))/i;
-function sbParse(body){
-  const lines = String(body||"").replace(/\r\n?/g,"\n").split("\n");
-  const ov = [], cuts = [{name:null, left:[], right:[], n:0}];
-  let cut = cuts[0];
-  for(let i=0;i<lines.length;i++){
-    const raw = lines[i], t = raw.trim();
-    let m;
-    if(/^\[개요\]$/.test(t)){
-      while(i+1<lines.length && (m = lines[i+1].trim().match(/^(\d+)\.\s*(.*)$/))){
-        const [scene, ...how] = m[2].split("·").map(x=>x.trim());
-        ov.push({no:+m[1], scene:scene||"", how:how.join(" · ")});
-        i++;
-      }
-      continue;
-    }
-    if((m = t.match(/^-(.+)-$/))){
-      cut = {name:m[1].trim(), left:[], right:[], n:0}; cuts.push(cut); continue;
-    }
-    cut.n++;
-    if((m = t.match(/^\[후킹\]\s*(.*)$/))){ cut.left.push({type:"narr", hook:true, text:m[1]}); continue; }
-    if((m = t.match(/^자막\s*[:：]\s*(.*)$/))){ cut.left.push({type:"cap", text:m[1]}); continue; }
-    if((m = t.match(/^\[([^\]]*)\]\s*(.*)$/))){
-      const inner = m[1], after = m[2].trim();
-      const parts = inner.split("·").map(x=>x.trim()).filter(Boolean);
-      if(/DM|디엠|카톡|문자|메시지/i.test(inner)){
-        const msgs = [];
-        let b;
-        while(i+1<lines.length && (b = lines[i+1].trim().match(/^([^:：]{1,10})[:：]\s*(.*)$/)) && b[1].trim()!=="자막"){
-          const who = b[1].trim(), say = b[2].trim(), ph = say.match(SB_PHOTO);
-          msgs.push({who, me: who==="세종"||who==="나", text:say,
-            photo: ph ? ph[1] : (say==="[사진]" ? "" : null)});
-          i++;
-        }
-        cut.left.push({type:"dm", parts, msgs, note:after}); continue;
-      }
-      if(/쿠팡|쇼핑|상품|스토어/.test(inner)){
-        const price = parts.find(x => /^[\d,.]+\s*원$/.test(x)) || "";
-        const name = parts.find(x => x!==price && !/쿠팡|쇼핑|상품|스토어/.test(x)) || "";
-        cut.left.push({type:"shop", parts, name, price, note:after}); continue;
-      }
-      if(parts.length && /댓글/.test(parts[0])){
-        const nick = parts.filter(x=>x.startsWith("@")).join(" ");
-        const text = parts.slice(1).filter(x=>!x.startsWith("@")).join(" · ");
-        cut.left.push({type:"cmt", nick, text, note:after}); continue;
-      }
-      const ph = parts.find(x => SB_PHOTO.test(x));
-      cut.right.push({type:"scene", parts: parts.filter(x=>x!==ph), photo: ph ? ph.match(SB_PHOTO)[1] : null, note:after});
-      continue;
-    }
-    cut.left.push({type:"narr", hook:false, text:raw});
-  }
-  if(cuts[0].n===0) cuts.shift();
-  return {ov, cuts: cuts.map(({name,left,right}) => ({name, left, right}))};
-}
-// TTS로 읽을 줄(나레이션·후킹)만
-function sbScript(body){
-  return sbParse(body).cuts.map((c,i) => ({no:i+1, name:c.name,
-    lines: c.left.filter(x => x.type==="narr" && x.text.trim()).map(x => ({hook:x.hook, text:x.text.trim()}))}));
-}
-// 꼭 찍어야 할 장면: '☑ ' 줄 = 체크됨, '☐ ' 줄 = 빈 칸, 나머지 = 그냥 글 (Devis 저장 형식)
-function mustParse(t){
-  return String(t||"").replace(/\r\n?/g,"\n").split("\n").filter(x => x.trim()).map(x =>
-    x.startsWith("☑ ") ? {box:true, on:true, text:x.slice(2)}
-    : x.startsWith("☐ ") ? {box:true, on:false, text:x.slice(2)}
-    : {box:false, on:false, text:x});
-}
-// ==/SB-PARSER==
-
-const CAM = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h3l2-2h6l2 2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
-const CHK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>`;
-const phBox = (sm) => `<div class="ph${sm?" sm":""}">${CAM}<span>사진(PC에 있음)</span></div>`;
-const CART = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 11.4a1 1 0 0 0 1 .8h9.7a1 1 0 0 0 1-.8L21 7H6"/></svg>`;
-const CAMS = CAM.replace(/width="22" height="22"/, 'width="16" height="16"');
-const DMKW = /DM|디엠|카톡|문자|메시지/i;
-const noteDiv = x => x.note ? `<div class="memo">${esc(x.note)}</div>` : "";
-function sbItem(x){
-  if(x.type==="narr") return x.text.trim()==="" ? `<div class="ln blank"></div>`
-    : x.hook ? `<div class="ln hook"><span class="tag tts">TTS</span>${esc(x.text)}</div>`
-    : `<div class="ln"><span class="tag tts">TTS</span>${esc(x.text)}</div>`;
-  if(x.type==="cap") return `<div class="ln cap"><span class="tag cap">자막</span>${esc(x.text)}</div>`;
-  if(x.type==="dm"){
-    const nm = x.parts.map(p => p.replace(DMKW,"").replace(/화면/g,"").trim()).filter(Boolean).join(" · ")
-      || (x.msgs.find(b => !b.me)||{}).who || "";
-    return `<div class="dm"><div class="hd"><span class="av"></span><span class="hn">${esc(nm)}</span><span class="dt">DM</span></div>${
-      x.msgs.map(b => `<div class="bub${b.me?" me":""}" title="${esc(b.who)}">${
-        b.photo!==null ? phBox(true) : `<span class="tx">${esc(b.text)}</span>`}</div>`).join("")}${noteDiv(x)}</div>`;
-  }
-  if(x.type==="shop"){
-    const sh = x.parts.find(p => /쿠팡|쇼핑|상품|스토어/.test(p)) || "";
-    return `<div class="shop"><div class="ic">${CART}</div><div><div class="sh">${esc(sh)}</div><div class="nm">${esc(x.name)}</div><div class="pr">${esc(x.price)}</div>${noteDiv(x)}</div></div>`;
-  }
-  if(x.type==="cmt") return `<div class="cmt"><div><span class="dt">댓글</span><span class="nk">${esc(x.nick)}</span></div><div>${esc(x.text)}</div>${noteDiv(x)}</div>`;
-  if(x.type==="scene"){
-    const t = [x.parts.join(" · "), x.note].filter(Boolean).join(" ");
-    return `<div>${x.photo!==null?phBox():""}${t||x.photo===null?`<div class="scn">${CAMS}<span>${esc(t)}</span></div>`:""}</div>`;
-  }
-  return "";
-}
-function renderSB(body){
-  const {ov, cuts} = sbParse(body);
-  let h = "";
-  if(ov.length) h += `<div class="sbOv"><h3>개요</h3><ol>${ov.map(o => `<li value="${o.no}">${esc(o.scene)}${o.how?` <span class="how">· ${esc(o.how)}</span>`:""}</li>`).join("")}</ol></div>`;
-  const must = $("f_must_shots").value.trim();
-  const ml = mustParse(must), mb = ml.filter(m => m.box);
-  if(must) h += `<div class="sbMust"><h3>꼭 찍어야 할 장면${mb.length?` <span class="mcnt">${mb.filter(m => m.on).length}/${mb.length} 찍음</span>`:""}</h3>${ml.map(m =>
-    `<div class="ms${m.box?(m.on?" on":" off"):""}">${m.box?`<span class="ck">${m.on?CHK:""}</span>`:""}<span>${esc(m.text)}</span></div>`).join("")}</div>`;
-  h += cuts.map((c,i) => `${c.name!==null?`<div class="sbTr">${esc(c.name)}</div>`:""}<div class="sbCut" data-cut="${i+1}">
-    <div class="sbL"><div class="sbNo">${i+1}</div><div class="sbLines">${c.left.map(sbItem).join("")}</div></div>
-    <div class="sbR${c.right.length?"":" empty"}"><div class="lb">화면</div>${c.right.map(sbItem).join("")}</div></div>`).join("");
-  return h || `<div class="meta">대본이 비어 있다.</div>`;
-}
-function renderScr(body){
-  const cs = sbScript(body).filter(c => c.lines.length);
-  return cs.map(c => `<div class="cutBlk" data-cut="${c.no}"><div class="sbNo">${c.no}</div><div>${
-    c.lines.map(l => l.hook ? `<div class="ln hook"><span class="tag tts">TTS</span>${esc(l.text)}</div>` : `<div class="ln"><span class="tag tts">TTS</span>${esc(l.text)}</div>`).join("")}</div></div>`).join("")
-    || `<div class="meta">읽을 줄이 없다.</div>`;
-}
 let view = "sb";
 function setView(v){
   view = v;
   document.querySelectorAll("#vtabs button").forEach(b => b.classList.toggle("on", b.dataset.v===v));
-  ["sb","scr","txt"].forEach(k => $("v_"+k).classList.toggle("hide", k!==v));
+  $("v_dsb").classList.toggle("hide", v==="txt");
+  $("v_txt").classList.toggle("hide", v!=="txt");
   document.querySelector(".wrap").classList.toggle("wide", v==="sb" && !$("detail").classList.contains("hide"));
-  const body = $("f_body").value;
-  if(v==="sb") $("v_sb").innerHTML = renderSB(body);
-  if(v==="scr") $("v_scr").innerHTML = renderScr(body);
+  // 스토리보드·대본만 = Devis 파일(devis-storyboard.js)로 그림. '글' = 원래 고치기 칸
+  if(v!=="txt") DevisSB.render($("v_dsb"), $("f_body").value, { view: v, mustShots: $("f_must_shots").value.split("\n") });
   $("d_title").textContent = $("f_title").value || "(제목 없음)";
   $("d_meta").textContent = [$("f_plan").value, $("f_product").value].filter(Boolean).join(" · ");
 }

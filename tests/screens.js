@@ -38,7 +38,10 @@ async function run(name, viewport, mobile) {
   const page = await browser.newPage({ viewport, deviceScaleFactor: 2, isMobile: mobile, hasTouch: mobile });
   const errors = [];
   page.on("pageerror", e => errors.push(e.message));
-  await page.route("https://board.test/**", r => r.fulfill({ contentType: "text/html", body: fs.readFileSync(path.join(ROOT, "index.html")) }));
+  await page.route("https://board.test/**", r => {
+    const f = new URL(r.request().url()).pathname.slice(1) || "index.html";
+    return r.fulfill({ path: path.join(ROOT, f) });
+  });
   await page.route("https://cdn.jsdelivr.net/**", r => {
     const u = r.request().url();
     if (u.includes("supabase-js")) return r.fulfill({ contentType: "application/javascript", body: fs.readFileSync(UMD) });
@@ -77,14 +80,14 @@ async function run(name, viewport, mobile) {
   const full = async (f, label) => { results.push(await check(label)); await page.screenshot({ path: path.join(OUT, `${name}-${f}.png`), fullPage: true }); };
   await full("1-list", "목록");
   await page.click('.card[data-id="a1"]');
-  await page.waitForSelector(".sbCut");
+  await page.waitForSelector(".bdSb");
   await page.evaluate(() => document.fonts.ready);
   await full("2-storyboard", "스토리보드");
-  await page.click('#vtabs [data-v="scr"]');
+  await page.click('#vtabs [data-v="tts"]');
   await full("3-script", "대본만");
   await page.click('#vtabs [data-v="txt"]');
   await full("4-text", "글");
-  const counts = await page.evaluate(() => { setView("sb"); return [...document.querySelectorAll(".sbCut")].map(c => c.querySelectorAll(".sbLines>*").length + "/" + c.querySelectorAll(".sbR>div:not(.lb)").length); });
+  const counts = await page.evaluate(() => { setView("sb"); return [...document.querySelectorAll(".bdSb")].map(c => c.querySelectorAll(".bdSbL>*").length + "/" + c.querySelectorAll(".bdSbR>*").length); });
   await page.evaluate(() => document.fonts.ready);
   const font = await page.evaluate(() => [...document.fonts].some(f => f.family.includes("Pretendard") && f.status === "loaded"));
   console.log(name, "Pretendard 불러옴:", font);

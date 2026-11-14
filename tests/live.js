@@ -184,6 +184,19 @@ async function label(b, page, f, title) {
   await typeEnd(A, 4, " 다시붙음"); await wait(900);
   ok((await body(B)).includes("다시붙음"), "다시 붙은 뒤 남의 글이 들어옴");
 
+  // ⑪ (9차 #908) A 가 셋째 줄을 지우고 저장 · 그사이(같이 고치기 안 붙은 채) B 는 같은 줄을 고침 → B 저장 = 막대(A 가 지운 게 조용히 되살아나면 안 됨)
+  await wait(1500);
+  rt.block = true; await wait(5500);                 // 서로 못 봄(남은 줄 잠금도 5초 지나 풀림)
+  const line3 = (await body(A)).split("\n")[3];
+  await A.click('#vtabs [data-v="txt"]');
+  await A.evaluate(() => { const t = document.getElementById("f_body"), L = t.value.split("\n"), s = L.slice(0, 3).join("\n").length + 1, e = s + L[3].length + 1; t.focus(); t.setSelectionRange(s, e); });
+  await A.keyboard.press("Backspace"); await wait(2200);
+  ok(!db.row.body.split("\n").includes(line3), "(A 가 셋째 줄을 지우고 저장함)");
+  await typeEnd(B, 3, " B가고침"); await wait(2200);
+  ok(await B.isVisible("#conflict") && !db.row.body.split("\n").includes(line3) && !db.row.body.includes("B가고침"), "지운 줄을 B 가 고쳐 저장하려 하면 막대 · A 가 지운 게 조용히 되살아나지 않음");
+  if (await B.isVisible("#conflict")) await B.click("#cTake");
+  rt.block = false; await A.click('#vtabs [data-v="sb"]'); await wait(1500);
+
   // ⑦ A 창을 닫으면 5초 안에 풀림
   await A.close(); await wait(6200);
   ok((await lockOf(B)).length === 0, "상대 창을 닫으면 5초 소식 없어서 풀림");

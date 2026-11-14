@@ -1,4 +1,4 @@
-/* devis-storyboard.js — 만든 날짜 2026-11-14 · Devis 커밋 305fdb4 + 아직 커밋 안 한 수정
+/* devis-storyboard.js — 만든 날짜 2026-11-14 · Devis 커밋 61eea96
  * Devis 대본 보드의 스토리보드·대본만 보기·글 보기를 웹 보드에서 똑같이 그리는 파일(보기 전용). build.py 가 만듦 — 손으로 고치지 말 것.
  * 사용: DevisSB.render(el, 대본글, { view: 'sb' | 'tts' | 'text', mustShots }) — 짝 파일 devis-storyboard.css 도 같이 넣기 */
 var DevisSB = (function () {
@@ -486,7 +486,7 @@ function bdMerge3(base, cur, mine, opt) {
       if (bdArrEq(sc, sm)) res = sm;
       else if (g1.every((h) => g2.some((k) => bdHunkIn(h, k, B)))) res = sm;
       else if (g2.every((h) => g1.some((k) => bdHunkIn(h, k, B)))) res = sc;
-      else if (seen && sc.every((x) => seen.has(x))) res = sm; // #904 겹친 곳의 남의 줄이 다 '내가 본 줄'(같이 고치기로 받았거나 내가 쳤던 줄) = 내 글의 옛 판 → 내 것
+      else if (seen && sc.length && sc.every((x) => seen.has(x)) && sc.some((x) => !B.includes(x))) res = sm; // #908 남이 지우기만 했거나(빈 덩어리) 원래 줄만 남긴 건 진짜 고침 → 막대 · #904 겹친 곳의 남의 줄이 다 '내가 본 줄'(같이 고치기로 받았거나 내가 쳤던 줄) = 내 글의 옛 판 → 내 것
       else if (win) {
         res = sm;
         bad++;

@@ -1,4 +1,4 @@
-/* devis-storyboard.js — 만든 날짜 2026-11-14 · Devis 커밋 7a9c388 + 아직 커밋 안 한 수정
+/* devis-storyboard.js — 만든 날짜 2026-11-14 · Devis 커밋 305fdb4 + 아직 커밋 안 한 수정
  * Devis 대본 보드의 스토리보드·대본만 보기·글 보기를 웹 보드에서 똑같이 그리는 파일(보기 전용). build.py 가 만듦 — 손으로 고치지 말 것.
  * 사용: DevisSB.render(el, 대본글, { view: 'sb' | 'tts' | 'text', mustShots }) — 짝 파일 devis-storyboard.css 도 같이 넣기 */
 var DevisSB = (function () {
@@ -242,7 +242,14 @@ function bdInsertRule(L0, k, o) {
   if (repl) at = L.length - 1;
   L.splice(at, repl ? 1 : 0, ...bdAddLines(d, o.me));
   if (L.length === d[2].length + 1 && !L.at(-1) && at === 0) L.pop(); // 처음 빈 대본
-  return { L, line: at + d[3], at: 'end' };
+  const r = { L, line: at + d[3], at: 'end' };
+  if (k === 'cut' && o.sb) {
+    // #904 G4-03 스토리보드엔 '-장면 전환-' 줄이 칸으로 안 보여 거기로 커서를 보내면 초점이 사라짐 → 새 컷 첫 줄(없으면 빈 줄 하나)로(컷 나누기 #670과 같게) · Devis·웹 보드 같이(#906)
+    const nx = r.line + 1;
+    if (nx >= L.length || bdScParse(L[nx])[0]?.t === 'cut') L.splice(nx, 0, '');
+    (r.line = nx), (r.at = 0);
+  }
+  return r;
 }
 // 후킹 줄 켜고 끄기(#499): sl = '/후킹' 자리({line, at, end}) 또는 null · o.at = 단추로 열 때의 줄. 글 줄이 아니면 null
 function bdHookRule(L0, sl, o) {
@@ -943,7 +950,7 @@ function mountEdit(el) {
       const r = bdHookRule(lines(), null, { at: at ?? I.at });
       return r ? commit(r) : note('후킹은 대본 글 줄에서 골라 주세요');
     }
-    const r = sl ? bdPickRule(lines(), k, sl, { sb: true, me: BD_ME_NAME }) : bdInsertRule(lines(), k, { scAt: at != null ? at : I.at, me: BD_ME_NAME });
+    const r = sl ? bdPickRule(lines(), k, sl, { sb: true, me: BD_ME_NAME }) : bdInsertRule(lines(), k, { scAt: at != null ? at : I.at, me: BD_ME_NAME, sb: true });
     if (r) commit(r);
   };
   const toggleKind = (li) => {

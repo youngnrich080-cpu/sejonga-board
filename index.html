@@ -54,6 +54,7 @@
   .cbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#FFF4E5;border:1px solid #F5C27A;border-radius:10px;padding:8px 10px;margin:8px 0;font-size:14px}
   .cbar span{flex:1 1 220px}
   .cbar.hide{display:none}
+  .lvToast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:12px;background:#141618;color:#fff;font-size:15px;line-height:1.4}
   /* 누가 보는 중 · 고치는 중 */
   .mePick{display:flex;gap:6px;align-items:center;margin:4px 0}
   .mePick button.on{background:#111;color:#fff;border-color:#111}
@@ -139,7 +140,7 @@
     </div>
     <div class="dhead"><div class="dtl"><h1 id="d_title"></h1><span class="pvBar" id="pvBar"></span></div><div class="meta" id="d_meta"></div></div>
     <div class="vtabs" id="vtabs"><button data-v="sb">스토리보드</button><button data-v="tts">대본만</button><button data-v="txt">글</button></div>
-    <div id="conflict" class="cbar hide"><span>다른 곳에서 이 대본을 고쳤어요 — 내 글은 그대로 있어요(저장은 멈춤)</span><button id="cTake">새 글 보기</button><button id="cMine" class="primary">내 글로 덮기</button></div>
+    <div id="conflict" class="cbar hide"><span id="cMsg">다른 곳에서 이 대본을 고쳤어요 — 내 글은 그대로 있어요(저장은 멈춤)</span><button id="cTake">새 글 보기</button><button id="cMine" class="primary">내 글로 덮기</button></div>
     <div id="v_dsb"></div>
     <div id="v_txt">
     <label>제목</label><input id="f_title">
@@ -192,6 +193,152 @@ const show = id => { ["login","list","detail"].forEach(x => $(x).classList.toggl
 const esc = t => (t||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 let view = "sb", dirty = false, pendingUndo = null;
+// ---------- 같이 고치기 (#900, 6차 지시) — 같은 채널 board:<방>의 broadcast 'live' · 규칙(합치기·말 받기·잠금)은 DevisSB.live(Devis 와 같은 코드) ----------
+const LVF = DevisSB.live;
+const LV = { c: (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)),   // 이 창 번호
+  mine: new Map(),    // 대본 id → { seq, last }  (seq 는 이 창에서 계속 늘어남 — 다시 열어도 작아지지 않게)
+  peers: new Map(),   // 보낸 창 → { text, seq } (그 사람 글로 내가 아는 것)
+  locks: new Map(),   // 보낸 창 → { who, line, hint, since, seen }
+  wantAt: new Map(), sendT: 0, anc: null, q: [], composing: false, my: { line: null, since: 0 } };
+const lvMine = () => { let st = LV.mine.get(cur.id); if(!st) LV.mine.set(cur.id, st = { seq: 0, last: null }); return st; };
+const lvOn = () => !!(PR.ch && PR.ready && prWho() && cur && !$("detail").classList.contains("hide") && formVal("body").length <= 20000);   // 2만 자 넘으면 끔(저장은 그대로)
+function lvSend(m){ if(lvOn()) PR.ch.send({ type: "broadcast", event: "live", payload: { v: 1, e: m.e, sid: cur.id, c: LV.c, who: prWho(), ...m } }).catch(() => {}); }
+function lvFull(){ const st = lvMine(), t = formVal("body"); if(!st.seq) st.seq = 1; clearTimeout(LV.sendT); st.last = t; lvSend({ e: "full", key: "body", seq: st.seq, full: t }); }
+function lvBody(){ clearTimeout(LV.sendT); LV.sendT = setTimeout(lvFlush, 250); }   // 0.25초 모아서
+function lvFlush(){
+  if(!lvOn()) return;
+  const st = lvMine(), t = formVal("body");
+  if(st.last === null){ st.seq++; st.last = t; return lvSend({ e: "full", key: "body", seq: st.seq, full: t }); }   // 이 대본에서 처음 = 전체
+  const h = LVF.lineHunk(st.last, t);
+  if(!h) return;
+  st.seq++;
+  if(h.lines.join("\n").length > 12000) lvSend({ e: "full", key: "body", seq: st.seq, full: t });
+  else lvSend({ e: "ed", key: "body", seq: st.seq, base: LVF.textHash(st.last), from: h.from, to: h.to, lines: h.lines });
+  st.last = t;
+}
+function lvOpen(){ LV.peers.clear(); LV.locks.clear(); LV.q = []; LV.anc = formVal("body"); LV.my = { line: null, since: 0 }; if(cur) lvMine().last = null; lvSend({ e: "want" }); }
+function lvClose(){ clearTimeout(LV.sendT); if(LV.my.line != null){ LV.my.line = null; lvSendLk(); } LV.peers.clear(); LV.locks.clear(); }
+function lvUp(again){ if(!cur || $("detail").classList.contains("hide")) return; if(again) lvFull(); lvSend({ e: "want" }); lvTrack(); }   // 다시 붙으면 내 글 전체 + 부탁 한 번
+function lvRecv(m){
+  if(!m || m.v !== 1 || m.c === LV.c || !cur || m.sid !== cur.id || $("detail").classList.contains("hide")) return;
+  if(LV.composing){ LV.q.push(m); return; }                    // 한글 조합이 끝난 뒤에 넣음
+  if(formVal("body").length > 20000) return;
+  if(m.e === "want"){ if(!m.to || m.to === LV.c) lvFull(); return; }
+  if(m.e === "lk") return lvLock(m);
+  if((m.e === "ed" || m.e === "full") && m.key === "body"){
+    const mine = formVal("body"),
+      r = LVF.recv(LV.peers.get(m.c) || null, { seq: m.seq, base: m.base, from: m.from, to: m.to, lines: m.lines, full: m.e === "full" ? m.full : null }, mine, LV.anc);
+    if(r.act === "drop") return;
+    if(r.act === "want"){ const t = LV.wantAt.get(m.c) || 0; if(Date.now() - t >= 1000){ LV.wantAt.set(m.c, Date.now()); lvSend({ e: "want", to: m.c }); } return; }
+    LV.peers.set(m.c, r.peer);
+    if(r.text !== mine) lvApply(mine, r.text);
+  }
+}
+function lvFlushQ(){ LV.composing = false; const q = LV.q; LV.q = []; q.forEach(lvRecv); }
+document.addEventListener("compositionstart", () => { LV.composing = true; });
+document.addEventListener("compositionend", () => setTimeout(lvFlushQ, 0));
+// 글자 위치 ↔ (줄, 칸 안 위치)
+const lineOfPos = (v, p) => v.slice(0, p).split("\n").length - 1;
+function caretInEd(e){ const sel = getSelection(); if(!sel.rangeCount || !e.contains(sel.anchorNode)) return 0; const r = sel.getRangeAt(0), pre = document.createRange(); pre.selectNodeContents(e); pre.setEnd(r.startContainer, r.startOffset); return pre.toString().length; }
+// 남의 고침(또는 저장 때 합친 글)을 내 글에 넣기 — 커서·스크롤·치는 칸 그대로 · 되돌리기 기록의 옛 글들에도 같은 고침
+function lvApply(old, txt, quiet){
+  const oL = old.split("\n"), nL = txt.split("\n"), sx = scrollX, sy = scrollY, ta = $("f_body"), ae = document.activeElement;
+  if(ae === ta){
+    const s = ta.selectionStart, e = ta.selectionEnd, map = p => { const l = lineOfPos(old, p), col = p - (old.lastIndexOf("\n", p - 1) + 1), nl = LVF.lineMap(oL, nL, l); return nL.slice(0, nl).reduce((a, x) => a + x.length + 1, 0) + Math.min(col, (nL[nl] || "").length); };
+    const ns = map(s), ne = map(e); ta.value = txt; ta.setSelectionRange(ns, ne);
+  } else ta.value = txt;
+  const I = $("v_dsb")._dsbEdit;
+  if(view === "sb" && I){
+    let focus = null;
+    if(ae && ae.matches && ae.matches(".bdScView .bdEd") && $("v_dsb").contains(ae)){
+      const row = ae.closest("[data-line]");
+      if(row) focus = { line: LVF.lineMap(oL, nL, +row.dataset.line), f: ae.dataset.f, at: caretInEd(ae) };
+    }
+    const fold = h => LVF.merge3(old, txt, h, { mineWins: true }).text;   // Devis 와 같이: 기록에도 남의 고침
+    I.hist = I.hist.map(fold); I.fut = I.fut.map(fold);
+    I.body = txt;                                               // 같은 글로 다시 render 해도 다시 안 그림(커서 그대로)
+    I.draw(focus);
+  } else if(view === "tts") setView("tts");
+  scrollTo(sx, sy);
+  if(LV.my.line != null){ const nl = LVF.lineMap(oL, nL, LV.my.line); if(nl !== LV.my.line){ LV.my.line = nl; lvSendLk(); } }
+  lvDrawLocks();
+  onEdit(false);
+  if(quiet) lvBody();
+}
+// ---- 줄 잠금
+const josa = n => { const c = n.charCodeAt(n.length - 1) - 0xAC00; return c >= 0 && c <= 11171 && c % 28 ? "이" : "가"; };   // 세종이 · 현재가
+function lvToast(msg){ const d = document.createElement("div"); d.className = "lvToast"; d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 2200); }
+function lvMyLine(){
+  const ae = document.activeElement;
+  if(ae === $("f_body")) return lineOfPos(ae.value, ae.selectionStart);
+  const e0 = ae && ae.closest && ae.closest("#v_dsb .bdScView .bdEd"), row = e0 && e0.closest("[data-line]");
+  return row ? +row.dataset.line : null;
+}
+function lvSendLk(){ const L = formVal("body").split("\n"), l = LV.my.line; lvSend({ e: "lk", line: l, hint: l == null ? "" : (L[l] || "").slice(0, 12), since: LV.my.since }); }
+function lvTrack(){
+  const l = lvOn() ? lvMyLine() : null;
+  if(l === LV.my.line) return;
+  LV.my.line = l; LV.my.since = Date.now(); lvSendLk(); lvDrawLocks();
+}
+document.addEventListener("focusin", () => setTimeout(lvTrack, 0));
+document.addEventListener("focusout", () => setTimeout(lvTrack, 0));   // 다시 그리느라 칸이 잠깐 빠져도 같은 줄이면 그대로(since 안 바뀜)
+document.addEventListener("selectionchange", () => { if(document.activeElement === $("f_body")) lvTrack(); });
+["keyup", "click"].forEach(ev => $("f_body").addEventListener(ev, lvTrack));
+setInterval(() => { if(LV.my.line != null && lvOn()) lvSendLk(); }, 2000);   // 같은 줄에 있는 동안 2초마다 다시 알림
+setInterval(() => {                                              // 5초 소식 없는 잠금은 풂
+  let gone = false; for(const [c, k] of LV.locks) if(Date.now() - k.seen > LVF.LK_TTL){ LV.locks.delete(c); gone = true; } if(gone) lvDrawLocks(); }, 1000);
+// 남이 잡은 줄들(내 글 줄 번호로) — 같은 줄을 내가 먼저 잡았으면 빼고
+function lvLockedLines(){
+  const out = new Map(); if(!lvOn()) return out;
+  const L = formVal("body").split("\n"), now = Date.now(), me = { since: LV.my.since, who: prWho(), c: LV.c };
+  for(const [c, k] of LV.locks){
+    if(now - k.seen > LVF.LK_TTL || k.line == null) continue;
+    const li = LVF.lkFind(L, k.line, k.hint);
+    if(li < 0 || (li === LV.my.line && LVF.lkWin(me, { ...k, c }))) continue;
+    out.set(li, k.who);
+  }
+  return out;
+}
+function lvLock(m){
+  if(m.line == null){ LV.locks.delete(m.c); return lvDrawLocks(); }
+  LV.locks.set(m.c, { who: m.who, line: m.line, hint: m.hint, since: m.since, seen: Date.now() });
+  const L = formVal("body").split("\n"), li = LVF.lkFind(L, m.line, m.hint);
+  if(li >= 0 && li === LV.my.line && !LVF.lkWin({ since: LV.my.since, who: prWho(), c: LV.c }, { since: m.since, who: m.who, c: m.c })){   // 같은 줄을 남이 먼저 잡음 → 나는 빠짐
+    const ae = document.activeElement;
+    if(ae && ae.closest && ae.closest("#v_dsb .bdScView .bdEd")) ae.blur();
+    lvToast(`${m.who}${josa(m.who)} 쓰는 중인 줄이에요`);
+    LV.my.line = null; lvSendLk();
+  }
+  lvDrawLocks();
+}
+function lvDrawLocks(){
+  const vw = $("v_dsb").querySelector(".bdScView.sb");
+  if(!vw) return;
+  LV.drawingLk = true;
+  vw.querySelectorAll(".bdLk").forEach(r => { r.classList.remove("bdLk"); r.style.removeProperty("--lk"); r.querySelectorAll(":scope > .bdLkTag").forEach(t => t.remove()); });
+  vw.querySelectorAll('.bdEd[data-lk]').forEach(e => { e.setAttribute("contenteditable", "plaintext-only"); e.removeAttribute("data-lk"); });
+  for(const [li, who] of lvLockedLines()){
+    const row = vw.querySelector(`[data-line="${li}"]`);
+    if(!row) continue;
+    row.classList.add("bdLk"); row.style.setProperty("--lk", prColor(who));
+    const tag = document.createElement("span"); tag.className = "bdLkTag"; tag.style.background = prColor(who); tag.textContent = `${who} 쓰는 중`; row.appendChild(tag);
+    row.querySelectorAll(".bdEd").forEach(e => { if(e.closest("[data-line]") === row && e.getAttribute("contenteditable") !== "false"){ e.setAttribute("contenteditable", "false"); e.dataset.lk = "1"; } });
+  }
+  LV.drawingLk = false;
+}
+// 스토리보드를 다시 그릴 때마다 잠금도 다시(그리는 건 Devis 파일 안이라 바뀐 걸 보고 다시 붙임)
+new MutationObserver(ms => { if(!LV.drawingLk && ms.some(m => m.target.classList && (m.target.classList.contains("bdScView") || m.target.id === "v_dsb"))) lvDrawLocks(); })
+  .observe($("v_dsb"), { childList: true, subtree: true });
+// 글 보기(textarea): 잠긴 줄에 치기·붙게 되는 지우기를 막음
+$("f_body").addEventListener("beforeinput", e => {
+  const lk = lvLockedLines(); if(!lk.size) return;
+  const t = e.target, v = t.value, s = t.selectionStart, en = t.selectionEnd;
+  let a = lineOfPos(v, s), b = lineOfPos(v, en);
+  if(e.inputType === "deleteContentBackward" && s === en && s > 0 && v[s - 1] === "\n") a--;   // 아래 줄 맨 앞 Backspace = 위 줄에 붙음
+  if(e.inputType === "deleteContentForward" && s === en && v[s] === "\n") b++;                 // 위 줄 맨 끝 Delete
+  for(let l = a; l <= b; l++) if(lk.has(l)){ e.preventDefault(); lvToast(`${lk.get(l)}${josa(lk.get(l))} 쓰는 중인 줄이에요`); return; }
+});
+
 // ---------- 누가 보는 중 · 고치는 중 (5차 지시 §3 — Supabase Realtime Presence, 표에는 아무것도 안 씀) ----------
 // 규칙(나·끊긴 사람·고치는 중 거르기, 색, 글)은 prcore898.js(Devis와 같은 파일). 여기는 연결·보내기·그리기만.
 const PR = { ch: null, room: null, key: (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)),
@@ -230,7 +377,7 @@ function prTyped(){                     // 글쇠: 처음 한 번 · 계속 치�
 function prOff(){
   if(PR.ch) sb.removeChannel(PR.ch);
   clearInterval(PR.beatT); clearInterval(PR.drawT); clearTimeout(PR.sendT);
-  Object.assign(PR, { ch: null, room: null, ready: false, sent: null, metas: [] }); PR.seen.clear(); prDraw();
+  Object.assign(PR, { ch: null, room: null, ready: false, wasUp: false, sent: null, metas: [] }); PR.seen.clear(); prDraw();
 }
 async function prOn(room){
   prOff();
@@ -238,7 +385,7 @@ async function prOn(room){
   const { data } = await sb.auth.getSession();
   if(!data.session || PR.room !== room) return;
   sb.realtime.setAuth(data.session.access_token);
-  const ch = sb.channel("board:" + room, { config: { private: true, presence: { key: PR.key } } });
+  const ch = sb.channel("board:" + room, { config: { private: true, presence: { key: PR.key }, broadcast: { self: false, ack: false } } });   // 같이 고치기(#900)도 이 채널
   PR.ch = ch;
   ch.on("presence", { event: "sync" }, () => {
     const st = ch.presenceState(), now = Date.now(), live = new Set();
@@ -250,7 +397,11 @@ async function prOn(room){
     for(const id of [...PR.seen.keys()]) if(!live.has(id)) PR.seen.delete(id);
     prDraw();
   });
-  ch.subscribe(s => { if(s === "SUBSCRIBED"){ PR.ready = true; PR.sent = null; prSend(true, true); } });   // 끊기면 supabase-js 가 다시 붙음 · 알림 안 띄움
+  ch.on("broadcast", { event: "live" }, ({ payload }) => lvRecv(payload));
+  ch.subscribe(s => {                                          // 끊기면 supabase-js 가 다시 붙음 · 알림 안 띄움 · 거절되면 조용히 꺼 둠
+    if(s === "SUBSCRIBED"){ const again = PR.wasUp; PR.ready = true; PR.wasUp = true; PR.sent = null; prSend(true, true); lvUp(again); }
+    else { PR.ready = false; lvDrawLocks(); }
+  });
   PR.beatT = setInterval(() => prSend(true), 60000);
   PR.drawT = setInterval(prDraw, 2000);                        // 3분·8초 지나 사라지는 것 반영
 }
@@ -276,6 +427,7 @@ window.addEventListener("resize", () => prSend());
 
 // ---------- 자동 저장 · 남이 고친 글 안 덮기 (5차 지시 §1·§2 — Devis와 같은 규칙) ----------
 const FIELDS = ["title","plan","product","author","body","must_shots","memo"];
+const MERGE = ["body","must_shots","memo"];   // 줄 단위로 합치는 칸(6차 §7)
 const norm = v => String(v ?? "").replace(/\r\n?/g,"\n").trim();   // \r\n = \n · 앞뒤 공백 · 없음 = 빈 글
 const same = (a,b) => norm(a)===norm(b);
 const rv = (row,k) => k==="author" ? (row[k]||"현재") : (row[k] ?? "");   // 쓴 사람 칸은 비면 '현재'로 보임(고르기 칸)
@@ -308,6 +460,7 @@ function adoptOthers(srv, skip){
     $("f_"+k).value = rv(srv,k); base[k] = rv(srv,k);
     if(k==="body" || k==="must_shots") redraw = true;
   }
+  if(redraw) lvBody();
   if(redraw) setView(view); else { $("d_title").textContent = formVal("title") || "(제목 없음)"; $("d_meta").textContent = [formVal("plan"), formVal("product")].filter(Boolean).join(" · "); }
 }
 function takeRow(row){ Object.assign(cur, row); rows = rows.map(r => r.id===cur.id ? cur : r); renderSteps(); }
@@ -322,10 +475,16 @@ async function guardedSave(manual){
     const {data: srv, error: e1} = await sb.from("scripts").select("*").eq("id", id).single();
     if(e1) return saveFail(e1, manual);
     if(!cur || cur.id!==id) return false;
-    const clash = keys.filter(k => !same(rv(srv,k), base[k]) && !same(rv(srv,k), mine[k]));
-    if(clash.length){ showConflict(srv, clash); return false; }  // 남이 같은 칸을 고침 → 저장 안 함
+    // 그사이 바뀌었으면: 본문·꼭 찍을 장면·메모는 줄 단위 합치기(Devis 와 같은 merge3) · 다른 칸은 같은 칸을 남이 고쳤으면 겹침
+    const want = {}, clash = [];
+    for(const k of keys){
+      if(srv.updated_at === base.updated_at || same(rv(srv,k), base[k])){ want[k] = mine[k]; continue; }
+      if(MERGE.includes(k)){ const m = DevisSB.live.merge3(base[k], rv(srv,k), mine[k]); if(m.ok) want[k] = m.text; else clash.push(k); }
+      else if(same(rv(srv,k), mine[k])) want[k] = mine[k]; else clash.push(k);
+    }
+    if(clash.length){ showConflict(srv, clash); return false; }  // 같은 줄(칸)을 서로 다르게 고침 → 저장 안 함
     const patch = {};
-    keys.forEach(k => { if(!same(rv(srv,k), mine[k])) patch[k] = mine[k]; });
+    keys.forEach(k => { if(!same(rv(srv,k), want[k])) patch[k] = want[k]; });
     let row = srv;
     if(Object.keys(patch).length){
       const {data, error} = await sb.from("scripts").update(patch).eq("id", id).eq("updated_at", srv.updated_at).select();
@@ -334,6 +493,10 @@ async function guardedSave(manual){
       row = data[0];
     }
     if(!cur || cur.id!==id) return false;
+    for(const k of keys) if(want[k] !== mine[k]){                   // 합친 글(남이 다른 줄에 넣은 것)을 화면에도 — 그사이 친 것은 그대로
+      const t = DevisSB.live.merge3(mine[k], want[k], formVal(k), { mineWins: true }).text;
+      if(k === "body") lvApply(formVal("body"), t, true); else $("f_"+k).value = t;
+    }
     keys.forEach(k => base[k] = rv(row,k));                         // 보낸 칸의 기준만 올림
     base.updated_at = row.updated_at;
     adoptOthers(row, keys);
@@ -355,6 +518,7 @@ function saveFail(err, manual){
 }
 function showConflict(srv, keys){
   conflict = {srv, keys}; clearTimeout(autoT);
+  $("cMsg").textContent = keys.some(k => MERGE.includes(k)) ? "다른 곳에서 이 대본의 같은 줄을 고쳤어요 — 내 글은 그대로 있어요(저장은 멈춤)" : "다른 곳에서 이 대본을 고쳤어요 — 내 글은 그대로 있어요(저장은 멈춤)";
   $("conflict").classList.remove("hide");
   status("저장 멈춤");
 }
@@ -367,7 +531,7 @@ $("cTake").onclick = () => {           // 겹친 칸을 남이 고친 글로 · 
   hideConflict();
   adoptOthers(srv, keys);
   if(keys.includes("body")) pendingUndo = myBody;
-  setView(view);
+  setView(view); lvBody();
   refreshDirty(); status("새 글로 바꿈");
   if(dirty) onEdit();
 };
@@ -400,7 +564,7 @@ function setView(v){
   // 스토리보드·대본만 = Devis 파일(devis-storyboard.js)로 그림. '글' = 원래 고치기 칸
   // 스토리보드는 칸 안에서 바로 고침(edit). 고친 글은 '대본 원문' 칸으로 → 저장 단추로 저장. 같은 글이면 다시 안 그림(커서 그대로)
   if(v==="sb") DevisSB.render($("v_dsb"), $("f_body").value, { view: "sb", mustShots: $("f_must_shots").value.split("\n"), edit: true,
-    onChange(t){ $("f_body").value = t; onEdit(true); } });
+    onChange(t){ $("f_body").value = t; onEdit(true); lvBody(); } });
   if(v==="sb" && pendingUndo!=null){ const I = $("v_dsb")._dsbEdit; if(I && I.hist) I.hist.push(pendingUndo); pendingUndo = null; }  // [새 글 보기] 전 내 글 = 되돌리기(↶)로 돌아옴
   else if(v==="tts") DevisSB.render($("v_dsb"), $("f_body").value, { view: "tts", mustShots: $("f_must_shots").value.split("\n") });
   $("d_title").textContent = $("f_title").value || "(제목 없음)";
@@ -446,7 +610,7 @@ function open(id){
   takeBase(cur); hideConflict(); clearTimeout(autoT); pendingUndo = null;
   $("savedMsg").textContent = ""; refreshDirty();
   renderSteps(); show("detail"); setView("sb"); window.scrollTo(0,0);
-  refreshCur(); prSet();
+  lvOpen(); refreshCur(); prSet();
 }
 
 function renderSteps(){
@@ -470,7 +634,7 @@ async function save(patch){
 }
 
 $("saveBtn").onclick = () => saveNow(true);   // 누르면 바로 저장(같은 겹침 검사)
-$("v_txt").addEventListener("input", () => onEdit(true));
+$("v_txt").addEventListener("input", () => { onEdit(true); lvBody(); });
 $("v_txt").addEventListener("change", () => onEdit(false));
 $("nextBtn").onclick = async () => {
   const n = cur.stage+1; if(n>5) return;
@@ -498,7 +662,7 @@ $("backBtn").onclick = async () => {          // 대본을 닫을 때 바로 저
   if(!conflict && dirty) await saveNow(false);
   if(conflict && !confirm("다른 곳에서 고친 글과 겹쳐서 내 글이 저장 안 됐어요. 그래도 목록으로 갈까요?")) return;
   if(!conflict && dirty && !confirm("저장 못 한 글이 있어요. 그래도 목록으로 갈까요?")) return;
-  hideConflict(); clearTimeout(autoT); base = null; dirty = false; cur = null;
+  lvClose(); hideConflict(); clearTimeout(autoT); base = null; dirty = false; cur = null;
   show("list"); load(); prSet();
 };
 document.addEventListener("click", e => {

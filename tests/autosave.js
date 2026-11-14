@@ -88,20 +88,20 @@ async function run(name, viewport, mobile) {
 
   // ④-1 [새 글 보기] → 남의 글 · ↶ 되돌리기로 내 글
   ({ b, page, db, errors } = await setup(viewport, mobile));
-  other(db, { body: db.row.body + "\nDevis 줄" });
+  other(db, { body: db.row.body.replace("둘째 줄", "둘째 줄 Devis줄") });   // 내가 고치는 줄과 같은 줄
   await typeAt(page, 2, " 내꺼");
   await page.waitForTimeout(1900);
   ok(await page.isVisible("#conflict"), "막대(새 글 보기 시험)");
   const mine2 = await page.$eval("#f_body", x => x.value);
   await page.click("#cTake");
-  ok(!(await page.isVisible("#conflict")) && (await page.$eval("#f_body", x => x.value)).includes("Devis 줄") && !(await page.$eval("#f_body", x => x.value)).includes("내꺼"), "[새 글 보기] = 남이 고친 글로 바뀜");
+  ok(!(await page.isVisible("#conflict")) && (await page.$eval("#f_body", x => x.value)).includes("Devis줄") && !(await page.$eval("#f_body", x => x.value)).includes("내꺼"), "[새 글 보기] = 남이 고친 글로 바뀜");
   await page.click('[data-undo="-1"]');
   ok(await page.$eval("#f_body", x => x.value) === mine2, "↶ 되돌리기로 내 글이 돌아옴");
   await b.close();
 
   // ④-2 [내 글로 덮기]
   ({ b, page, db, errors } = await setup(viewport, mobile));
-  other(db, { body: db.row.body + "\nDevis 줄" });
+  other(db, { body: db.row.body.replace("둘째 줄", "둘째 줄 Devis줄") });   // 내가 고치는 줄과 같은 줄
   await typeAt(page, 2, " 내꺼");
   await page.waitForTimeout(1900);
   const mine3 = await page.$eval("#f_body", x => x.value);
@@ -109,12 +109,23 @@ async function run(name, viewport, mobile) {
   await page.waitForTimeout(500);
   ok(!(await page.isVisible("#conflict")) && db.row.body === mine3, "[내 글로 덮기] = 내 글로 저장");
 
+  ok((await page.$eval("#cMsg", x => x.textContent)).includes("같은 줄"), "막대 글: '같은 줄을 고쳤어요'");
   // ⑤ 창이 다시 보일 때: 안 저장한 고침 없으면 조용히 새 글
   other(db, { body: db.row.body + "\n폰에서 보는 사이 Devis 가 넣음", title: "새 제목" });
   await page.evaluate(() => { Object.defineProperty(document, "hidden", { value: false, configurable: true }); document.dispatchEvent(new Event("visibilitychange")); });
   await page.waitForTimeout(400);
   ok((await page.$eval("#f_body", x => x.value)).includes("폰에서 보는 사이") && await page.$eval("#d_title", x => x.textContent) === "새 제목" && !(await page.isVisible("#conflict")), "창이 다시 보이면 조용히 새 글로");
   ok(errors.length === 0, "화면 오류 없음 " + errors.join(" | "));
+  await b.close();
+
+  // ⑥ (6차) 같은 본문 칸이라도 다른 줄이면 줄 단위로 합쳐 저장 — 막대 없음 · 남의 줄이 내 화면에도
+  ({ b, page, db, errors } = await setup(viewport, mobile));
+  other(db, { body: db.row.body.replace("첫 줄", "첫 줄 Devis가 고침") });
+  await typeAt(page, 2, " 웹이 고침");
+  await page.waitForTimeout(2000);
+  ok(!(await page.isVisible("#conflict")) && db.row.body.includes("첫 줄 Devis가 고침") && db.row.body.includes("둘째 줄 웹이 고침"), "다른 줄이면 둘 다 남고 막대 없음(줄 단위 합치기)");
+  ok((await page.$eval("#f_body", x => x.value)).includes("첫 줄 Devis가 고침"), "합친 글이 내 화면에도");
+  ok(errors.length === 0, "화면 오류 없음(합치기) " + errors.join(" | "));
   await b.close();
   console.log(out.map(x => name + " " + x).join("\n"));
 }

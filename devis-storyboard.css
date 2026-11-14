@@ -1,4 +1,4 @@
-/* devis-storyboard.css — 만든 날짜 2026-11-13 · Devis 커밋 bf4354e
+/* devis-storyboard.css — 만든 날짜 2026-11-14 · Devis 커밋 b18697b
  * web/style.css 에서 스토리보드·대본만 규칙을 .dsb 범위로 옮긴 것(밝은 화면 값) + tools/webboard/dsb_extra.css(폰 규칙). build.py 가 만듦 — 손으로 고치지 말 것. */
 .dsb {
   --gap:#F1F3F4;
@@ -245,6 +245,7 @@
 .dsb .bdSbDir .bdEd { min-width:8em; }
 .dsb .bdSbDir:has(> .bdSbDirC):has(> .bdSbPic.none) { grid-template-columns:24px minmax(8em, 1fr); }
 .dsb .bdEd:focus, .dsb .bdEd:focus-visible { outline:none; }
+.dsb .bdLk .bdEd { cursor:not-allowed; }
 /* 웹 보드 전용 덧붙임(손으로 고치는 원본 — build.py 가 style.css 에서 뽑은 규칙 뒤에 붙임) */
 .dsb, .dsb *, .dsb *::before, .dsb *::after { box-sizing:border-box; }
 .dsb { font:12.5px/1.45 'Pretendard', 'Pretendard Variable', system-ui, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; color:var(--text); -webkit-text-size-adjust:100%; }
@@ -330,3 +331,7 @@
   .dsb .bdSbAdd { height:auto; min-height:44px; align-items:center; line-height:1.4; font-size:15px; }
   .dsb .bdSbNew { min-height:44px; font-size:15px; }
 }
+/* #900 같이 고치기: 남이 쓰는 줄 = 그 사람 색 테두리 + 이름표('세종 쓰는 중') — 줄 요소에 class bdLk + style --lk:색 + 안에 <span class="bdLkTag">세종 쓰는 중</span>, 그 줄 칸은 contenteditable=false (Devis 와 같음) */
+.dsb .bdLk { position:relative; outline:2px solid var(--lk, #1D4ED8); outline-offset:2px; border-radius:6px; }
+.dsb .bdLk .bdEd { cursor:not-allowed; }
+.dsb .bdLkTag { position:absolute; top:-11px; right:6px; z-index:4; padding:1px 7px; border-radius:9px; color:#fff; font-size:11px; font-weight:700; line-height:16px; white-space:nowrap; pointer-events:none; font-style:normal; box-shadow:0 1px 3px rgba(0,0,0,.25); }

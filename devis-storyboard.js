@@ -1,4 +1,4 @@
-/* devis-storyboard.js — 만든 날짜 2026-11-13 · Devis 커밋 bf4354e
+/* devis-storyboard.js — 만든 날짜 2026-11-14 · Devis 커밋 b18697b
  * Devis 대본 보드의 스토리보드·대본만 보기·글 보기를 웹 보드에서 똑같이 그리는 파일(보기 전용). build.py 가 만듦 — 손으로 고치지 말 것.
  * 사용: DevisSB.render(el, 대본글, { view: 'sb' | 'tts' | 'text', mustShots }) — 짝 파일 devis-storyboard.css 도 같이 넣기 */
 var DevisSB = (function () {
@@ -342,6 +342,213 @@ function bdKeyRule(L0, o) {
     if (/^(cut|sub|dir)$/.test(t) && !txt) return del();
   }
   return null;
+}
+
+// ---------- #900 같이 고치기(실시간) 규칙 — 순수 함수만. server/linemerge.py 와 같은 규칙(같은 시험 표 tests/merge900_cases.json) · 웹 보드도 이 파일을 그대로 씀 ----------
+// 줄 단위 3자 합치기: base = 둘이 같이 불러온 글 · cur = 남이 고친 글 · mine = 내 글. → { ok, text, n }
+//   겹치는 줄이 없으면 둘의 고침을 다 넣은 글. 같은 줄을 서로 다르게 고쳤으면 ok:false(opt.mineWins 이면 그 줄만 내 것 · ok:true · n = 겹친 덩어리 수)
+//   바뀐 덩어리가 겹치면 한 묶음: (1) 두 결과가 같으면 그대로 (2) 한쪽 고침이 다른 쪽 고침 안에 다 들어 있으면(내가 남의 고침을 이미 받아 넣은 글) 큰 쪽 (3) 아니면 겹침
+const BD_LCS_MAX = 1000000; // 가운데 줄 수 곱이 이보다 크면 한 덩어리(겹침으로 봄 — 안전한 쪽)
+const bdLinesOf = (s) => String(s == null ? '' : s).replace(/\r\n?/g, '\n').split('\n');
+const bdArrEq = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+function bdDiffLines(A, B) {
+  // A → B 바뀐 덩어리들 [{a, b, r}] = A[a..b) 를 줄 목록 r 로 바꿈(a===b 끼워 넣기 · r 이 비면 지우기)
+  const n = A.length,
+    m = B.length;
+  let p = 0,
+    s = 0;
+  while (p < n && p < m && A[p] === B[p]) p++;
+  while (s < n - p && s < m - p && A[n - 1 - s] === B[m - 1 - s]) s++;
+  const a = A.slice(p, n - s),
+    b = B.slice(p, m - s),
+    la = a.length,
+    lb = b.length;
+  if (!la && !lb) return [];
+  if (!la || !lb || la * lb > BD_LCS_MAX) return [{ a: p, b: p + la, r: b }];
+  const w = lb + 1,
+    dp = new Int32Array((la + 1) * w);
+  for (let i = la - 1; i >= 0; i--)
+    for (let j = lb - 1; j >= 0; j--) dp[i * w + j] = a[i] === b[j] ? dp[(i + 1) * w + j + 1] + 1 : Math.max(dp[(i + 1) * w + j], dp[i * w + j + 1]);
+  const out = [];
+  let i = 0,
+    j = 0,
+    cur = null;
+  while (i < la || j < lb) {
+    if (i < la && j < lb && a[i] === b[j]) {
+      if (cur) {
+        out.push(cur);
+        cur = null;
+      }
+      i++;
+      j++;
+      continue;
+    }
+    if (!cur) cur = { a: p + i, b: p + i, r: [] };
+    if (j >= lb || (i < la && dp[(i + 1) * w + j] >= dp[i * w + j + 1])) {
+      i++;
+      cur.b = p + i;
+    } else cur.r.push(b[j++]);
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+const bdHasSub = (big, small) => {
+  for (let i = 0; i + small.length <= big.length; i++) {
+    let k = 0;
+    while (k < small.length && big[i + k] === small[k]) k++;
+    if (k === small.length) return true;
+  }
+  return false;
+};
+function bdHunkIn(s, big, B) {
+  // 고침 s 가 고침 big 안에 다 들어 있나(big 이 s 의 범위를 덮고, s 가 넣은 줄이 big 이 넣은 줄 안에 이어서 있음 · s 가 지운 줄이면 big 이 그 줄을 안 되살림)
+  if (!(big.a <= s.a && s.b <= big.b)) return false;
+  if (s.r.length) return bdHasSub(big.r, s.r);
+  if (big.a === s.a && big.b === s.b) return false; // 같은 줄을 한쪽은 지우고 한쪽은 고침 = 겹침
+  return !B.slice(s.a, s.b).some((x) => big.r.includes(x));
+}
+const bdOv = (h, ga, gb) => (h.a < gb && ga < h.b) || h.a === ga;
+function bdMerge3(base, cur, mine, opt) {
+  const win = !!(opt && opt.mineWins),
+    B = bdLinesOf(base),
+    C = bdLinesOf(cur),
+    M = bdLinesOf(mine);
+  if (bdArrEq(C, B)) return { ok: true, text: M.join('\n'), n: 0 };
+  if (bdArrEq(M, B)) return { ok: true, text: C.join('\n'), n: 0 };
+  if (bdArrEq(C, M)) return { ok: true, text: M.join('\n'), n: 0 };
+  const H1 = bdDiffLines(B, C),
+    H2 = bdDiffLines(B, M),
+    out = [];
+  let pos = 0,
+    i = 0,
+    j = 0,
+    bad = 0;
+  while (i < H1.length || j < H2.length) {
+    const g1 = [],
+      g2 = [];
+    let h0;
+    if (j >= H2.length || (i < H1.length && H1[i].a <= H2[j].a)) g1.push((h0 = H1[i++]));
+    else g2.push((h0 = H2[j++]));
+    const ga = h0.a;
+    let gb = h0.b;
+    for (;;) {
+      let took = false;
+      if (i < H1.length && bdOv(H1[i], ga, gb)) {
+        gb = Math.max(gb, H1[i].b);
+        g1.push(H1[i++]);
+        took = true;
+      }
+      if (j < H2.length && bdOv(H2[j], ga, gb)) {
+        gb = Math.max(gb, H2[j].b);
+        g2.push(H2[j++]);
+        took = true;
+      }
+      if (!took) break;
+    }
+    const seg = (g) => {
+      const r = [];
+      let q = ga;
+      for (const h of g) {
+        for (; q < h.a; q++) r.push(B[q]);
+        for (const x of h.r) r.push(x);
+        q = h.b;
+      }
+      for (; q < gb; q++) r.push(B[q]);
+      return r;
+    };
+    let res;
+    if (!g2.length) res = seg(g1);
+    else if (!g1.length) res = seg(g2);
+    else {
+      const sc = seg(g1),
+        sm = seg(g2);
+      if (bdArrEq(sc, sm)) res = sm;
+      else if (g1.every((h) => g2.some((k) => bdHunkIn(h, k, B)))) res = sm;
+      else if (g2.every((h) => g1.some((k) => bdHunkIn(h, k, B)))) res = sc;
+      else if (win) {
+        res = sm;
+        bad++;
+      } else return { ok: false, text: null, n: 1 };
+    }
+    for (let q = pos; q < ga; q++) out.push(B[q]);
+    for (const x of res) out.push(x);
+    pos = gb;
+  }
+  for (let q = pos; q < B.length; q++) out.push(B[q]);
+  return { ok: true, text: out.join('\n'), n: bad };
+}
+// 줄 번호 옮기기: old 줄 목록의 l 번째 줄이 new 줄 목록에서 몇 번째인가(앞에서 줄이 늘고 줄어도 커서·잠금이 따라감)
+function bdLineMap(oldL, newL, l) {
+  let shift = 0;
+  for (const h of bdDiffLines(oldL, newL)) {
+    if (l >= h.b) shift += h.r.length - (h.b - h.a);
+    else if (l >= h.a) return Math.max(0, Math.min(newL.length - 1, h.a + shift));
+    else break;
+  }
+  return Math.max(0, Math.min(newL.length - 1, l + shift));
+}
+// 보낼 고침: old 글 → now 글 = old 의 줄 [from, to) 를 lines 로(앞뒤 같은 줄은 뺌). 같으면 null
+function bdLineHunk(oldT, nowT) {
+  if (oldT === nowT) return null;
+  const A = String(oldT).split('\n'),
+    B = String(nowT).split('\n');
+  let p = 0,
+    s = 0;
+  while (p < A.length && p < B.length && A[p] === B[p]) p++;
+  while (s < A.length - p && s < B.length - p && A[A.length - 1 - s] === B[B.length - 1 - s]) s++;
+  return { from: p, to: A.length - s, lines: B.slice(p, B.length - s) };
+}
+function bdApplyHunk(text, h) {
+  // 받은 고침을 글에 적용 — 범위가 글 밖이면 null(보낸 쪽 글과 내가 아는 글이 다름 = 전체를 부탁해야 함)
+  const L = String(text).split('\n');
+  if (!h || !Array.isArray(h.lines) || !(h.from >= 0 && h.from <= h.to && h.to <= L.length)) return null;
+  return [...L.slice(0, h.from), ...h.lines, ...L.slice(h.to)].join('\n');
+}
+// 글 짧은 지문(32비트 FNV-1a + 길이) — '보낸 쪽 직전 글 = 내가 아는 보낸 쪽 글' 확인용
+function bdTextHash(s) {
+  s = String(s);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return (h >>> 0).toString(16) + '.' + s.length;
+}
+// 받은 말 한 개 처리(상태 기계): peer = 내가 아는 보낸 사람의 글 { text, seq } 또는 null · m = 받은 말 { seq, base, from, to, lines } 또는 { seq, full } · mine = 내 글 · anc = 처음 만난 사람 글을 합칠 때 기준(내가 불러온 글)
+// → { act:'apply'|'want'|'drop', peer(새로 아는 보낸 사람 글), text(내 새 글), from·to(합칠 때 쓴 기준 · 새 글 — 되돌리기 기록에도 같이 넣음), n(내 것을 둔 덩어리 수) }
+//   순서 뒤바뀜(seq 가 작거나 같음) = drop · 빠진 말(seq 건너뜀)·지문 다름·범위 밖 = want(전체를 부탁)
+function bdLiveRecv(peer, m, mine, anc) {
+  if (m.full != null) {
+    const t = String(m.full);
+    if (peer && m.seq < peer.seq) return { act: 'drop' };
+    const old = peer ? peer.text : anc == null ? mine : anc,
+      r = bdMerge3(old, t, mine, { mineWins: true });
+    return { act: 'apply', peer: { text: t, seq: m.seq }, text: r.text, from: old, to: t, n: r.n };
+  }
+  if (!peer) return { act: 'want' };
+  if (m.seq <= peer.seq) return { act: 'drop' };
+  if (m.seq !== peer.seq + 1 || m.base !== bdTextHash(peer.text)) return { act: 'want' };
+  const t = bdApplyHunk(peer.text, m);
+  if (t == null) return { act: 'want' };
+  const r = bdMerge3(peer.text, t, mine, { mineWins: true });
+  return { act: 'apply', peer: { text: t, seq: m.seq }, text: r.text, from: peer.text, to: t, n: r.n };
+}
+// 줄 잠금 = { who, c(보낸 창), line, hint(그 줄 글 앞 12자), since(그 줄을 잡은 시각), seen }. 5초 소식 없으면 풂
+const BD_LK_TTL = 5000;
+function bdLkWin(a, b) {
+  // 같은 줄을 동시에 잡았을 때 a 가 이기나: 먼저 잡은 사람(since 작은 쪽) → 같으면 이름 가나다 앞쪽 → 같으면 창 번호
+  if (a.since !== b.since) return a.since < b.since;
+  const w = String(a.who).localeCompare(String(b.who), 'ko');
+  return w ? w < 0 : String(a.c) < String(b.c);
+}
+function bdLkFind(L, line, hint) {
+  // 보낸 쪽 줄 번호 → 내 글에서의 줄 번호: 같은 번호 줄이 그 글로 시작하면 그 줄 · 아니면 그 글로 시작하는 가장 가까운 줄(앞에서 줄이 늘어 밀렸을 때) · 못 찾으면 번호 그대로
+  if (line == null || line < 0 || !L.length) return -1;
+  const h = hint || '';
+  if (!h || (line < L.length && L[line].startsWith(h))) return line < L.length ? line : L.length - 1;
+  let best = -1;
+  for (let i = 0; i < L.length; i++) if (L[i].startsWith(h) && (best < 0 || Math.abs(i - line) < Math.abs(best - line))) best = i;
+  return best >= 0 ? best : line < L.length ? line : -1;
 }
 /* ---- 아이콘(app.js BD_ICONS) ---- */
 const ICONS = {
@@ -868,5 +1075,17 @@ function render(el, body, opt) {
   return el;
 }
 
-return { render, parse: bdScParse, split: bdSbSplit, ttsLines: bdTtsGroups, mustItems };
+// #900 같이 고치기(실시간)·저장 합치기 규칙 — 화면 없는 순수 함수(sbcore.js 그대로). 웹 보드가 Devis 와 같은 broadcast·잠금·합치기를 쓰려고 내보냄
+const live = {
+  merge3: bdMerge3, // (기준 글, 남이 고친 글, 내 글, { mineWins }) → { ok, text, n } — 서버 저장 합치기(server/linemerge.py)와 같은 규칙
+  lineHunk: bdLineHunk, // (옛 글, 새 글) → { from, to, lines } | null — 보낼 고침
+  applyHunk: bdApplyHunk,
+  textHash: bdTextHash, // 글 지문 — 보낸 말의 base
+  recv: bdLiveRecv, // (peer, 받은 말, 내 글, 처음 만난 사람 글을 합칠 기준) → { act:'apply'|'want'|'drop', peer, text, from, to, n }
+  lineMap: bdLineMap, // (옛 줄들, 새 줄들, 줄 번호) → 새 줄 번호 — 커서·잠금 줄이 앞에서 줄이 늘고 줄어도 따라감
+  lkFind: bdLkFind, // (내 줄들, 보낸 줄 번호, 그 줄 글 앞 12자) → 내 글에서 그 줄 번호
+  lkWin: bdLkWin, // 같은 줄을 동시에 잡았을 때 먼저 잡은 사람이 이김
+  LK_TTL: BD_LK_TTL // 5000 — 이 시간(ms) 줄 알림이 없으면 잠금을 풂
+};
+return { render, parse: bdScParse, split: bdSbSplit, ttsLines: bdTtsGroups, mustItems, live };
 })();

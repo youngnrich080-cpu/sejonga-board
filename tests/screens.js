@@ -33,7 +33,9 @@ const ROWS = [
 const SESSION = { access_token: "fake", refresh_token: "fake", token_type: "bearer", expires_in: 3600 * 24 * 365,
   expires_at: Math.floor(Date.now() / 1000) + 3600 * 24 * 365, user: { id: "u1", email: "test@example.com", aud: "authenticated", role: "authenticated" } };
 
+const ROWS0 = JSON.stringify(ROWS);
 async function run(name, viewport, mobile) {
+  ROWS.splice(0, ROWS.length, ...JSON.parse(ROWS0));   // 크기마다 처음 데이터로
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport, deviceScaleFactor: 2, isMobile: mobile, hasTouch: mobile });
   const errors = [];
@@ -59,9 +61,14 @@ async function run(name, viewport, mobile) {
     const q = r.request();
     if (q.url().includes("/rest/v1/scripts") && q.method() === "PATCH") {  // 저장: 보낸 글을 잡아 두고 고친 줄을 돌려줌
       const patch = q.postDataJSON(); patches.push(patch);
-      return r.fulfill({ contentType: "application/json", body: JSON.stringify({ ...ROWS[0], ...patch }) });
+      Object.assign(ROWS[0], patch, { updated_at: new Date().toISOString() });
+      return r.fulfill({ contentType: "application/json", body: JSON.stringify((q.headers()["accept"] || "").includes("pgrst.object") ? ROWS[0] : [ROWS[0]]) });
     }
-    if (q.url().includes("/rest/v1/scripts")) return r.fulfill({ contentType: "application/json", body: JSON.stringify(ROWS) });
+    if (q.url().includes("/rest/v1/scripts")) {   // 한 줄 달라고 하면(.single) 그 줄만, 아니면 목록
+      const id = new URL(q.url()).searchParams.get("id");
+      if ((q.headers()["accept"] || "").includes("pgrst.object")) return r.fulfill({ contentType: "application/json", body: JSON.stringify(ROWS.find(x => "eq." + x.id === id) || ROWS[0]) });
+      return r.fulfill({ contentType: "application/json", body: JSON.stringify(ROWS) });
+    }
     return r.fulfill({ status: 200, contentType: "application/json", body: "{}" });
   });
   await page.addInitScript(s => localStorage.setItem("sb-ndyygluwlfeqibpdhnjk-auth-token", s), JSON.stringify(SESSION));

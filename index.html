@@ -54,6 +54,19 @@
   .cbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#FFF4E5;border:1px solid #F5C27A;border-radius:10px;padding:8px 10px;margin:8px 0;font-size:14px}
   .cbar span{flex:1 1 220px}
   .cbar.hide{display:none}
+  /* 누가 보는 중 · 고치는 중 */
+  .mePick{display:flex;gap:6px;align-items:center;margin:4px 0}
+  .mePick button.on{background:#111;color:#fff;border-color:#111}
+  .dtl{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .pvBar{font-size:14px;color:var(--sub);display:flex;gap:10px;flex-wrap:wrap}
+  .pvBar b{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px}
+  .pvBar .dots i{font-style:normal;animation:pvDot 1.2s infinite;opacity:.2}
+  .pvBar .dots i:nth-child(2){animation-delay:.2s} .pvBar .dots i:nth-child(3){animation-delay:.4s}
+  @keyframes pvDot{0%,100%{opacity:.2}40%{opacity:1}}
+  .pvs{display:inline-flex;margin-left:auto;margin-right:6px}
+  .pvs i{font-style:normal;width:22px;height:22px;border-radius:50%;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;border:2px solid #fff;margin-left:-6px}
+  .pvs i:first-child{margin-left:0}
+  .pvs i.more{background:#6A7075}
 
   /* 보기 전환: 작은 칩 */
   .vtabs{display:flex;gap:6px;margin:12px 0}
@@ -84,6 +97,8 @@
     .steps li{min-height:48px;font-size:15px}
     .steps li .meta{font-size:15px}
     .steps li .sw{font-size:13px;color:#5A6066}
+    .pvBar{font-size:15px}
+    .pvs i{width:26px;height:26px;font-size:13px}
   }
 </style>
 </head>
@@ -105,6 +120,7 @@
       <h1>세종아 보드</h1>
       <div class="row"><button id="newBtn" class="primary">+ 새 대본</button><button id="logoutBtn">로그아웃</button></div>
     </div>
+    <div class="mePick" id="mePick"></div>
     <h2>해야 할 일</h2>
     <div class="todo">
       <div class="box sj"><h3>세종</h3><div id="todoSJ"></div></div>
@@ -121,7 +137,7 @@
       <button id="backBtn">← 목록</button>
       <span class="saved" id="savedMsg"></span>
     </div>
-    <div class="dhead"><h1 id="d_title"></h1><div class="meta" id="d_meta"></div></div>
+    <div class="dhead"><div class="dtl"><h1 id="d_title"></h1><span class="pvBar" id="pvBar"></span></div><div class="meta" id="d_meta"></div></div>
     <div class="vtabs" id="vtabs"><button data-v="sb">스토리보드</button><button data-v="tts">대본만</button><button data-v="txt">글</button></div>
     <div id="conflict" class="cbar hide"><span>다른 곳에서 이 대본을 고쳤어요 — 내 글은 그대로 있어요(저장은 멈춤)</span><button id="cTake">새 글 보기</button><button id="cMine" class="primary">내 글로 덮기</button></div>
     <div id="v_dsb"></div>
@@ -151,6 +167,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="devis-storyboard.js"></script>
+<script src="prcore898.js"></script>
 <script>
 const SUPABASE_URL = "https://ndyygluwlfeqibpdhnjk.supabase.co";
 const SUPABASE_KEY = "sb_publishable_RuA_IM5-e9UO5PBdktLYqw_R4qnfryP";
@@ -175,7 +192,87 @@ const show = id => { ["login","list","detail"].forEach(x => $(x).classList.toggl
 const esc = t => (t||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 let view = "sb", dirty = false, pendingUndo = null;
-function prTyped(){} function prSet(){}   // 누가 보는 중(§3) — 방·이름 정해지면 채움
+// ---------- 누가 보는 중 · 고치는 중 (5차 지시 §3 — Supabase Realtime Presence, 표에는 아무것도 안 씀) ----------
+// 규칙(나·끊긴 사람·고치는 중 거르기, 색, 글)은 prcore898.js(Devis와 같은 파일). 여기는 연결·보내기·그리기만.
+const PR = { ch: null, room: null, key: (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)),
+  sent: null, sentAt: 0, sendT: 0, typeT: 0, beatT: 0, drawT: 0, lastKey: 0, seen: new Map(), metas: [] };
+const lsGet = k => { try { return localStorage.getItem(k); } catch(e){ return null; } };
+const lsSet = (k,v) => { try { localStorage.setItem(k, v); } catch(e){} };
+const prWho = () => { const w = lsGet("sjb_who"); return w==="세종" || w==="현재" ? w : null; };   // 기기마다 한 번 고름
+function drawMe(){
+  const w = prWho();
+  $("mePick").innerHTML = `<span class="meta">나</span>` + ["세종","현재"].map(x => `<button data-me="${x}" class="${x===w?'on':''}">${x}</button>`).join("");
+}
+$("mePick").onclick = e => { const b = e.target.closest("[data-me]"); if(!b) return; lsSet("sjb_who", b.dataset.me); drawMe(); prSet(true); };
+function prState(){
+  const open = cur && !$("detail").classList.contains("hide") && !document.hidden;
+  return { who: prWho(), dev: innerWidth<=700 ? "폰" : "웹", sid: open ? cur.id : null, typing: Date.now()-PR.lastKey < 3000, at: Date.now() };
+}
+const prSame = (a,b) => a && b && a.who===b.who && a.dev===b.dev && a.sid===b.sid && a.typing===b.typing;
+// 값이 바뀔 때만 · 2초에 한 번까지(now = 숨겨질 때처럼 바로) · force = 안 바뀌어도(1분마다·치는 중 5초마다)
+function prSend(force, now){
+  if(!PR.ch || !PR.ready) return;
+  const st = prState();
+  if(!force && prSame(st, PR.sent)) return;
+  const wait = PR.sentAt + 2000 - Date.now();
+  if(wait > 0 && !now){ clearTimeout(PR.sendT); PR.sendT = setTimeout(() => prSend(force), wait); return; }
+  clearTimeout(PR.sendT);
+  PR.sent = st; PR.sentAt = Date.now();
+  PR.ch.track(st).catch(() => {});
+}
+function prTyped(){                     // 글쇠: 처음 한 번 · 계속 치면 5초마다 · 멈추고 3초 뒤 typing:false
+  const was = Date.now()-PR.lastKey < 3000;
+  PR.lastKey = Date.now();
+  if(!was || !PR.sent || !PR.sent.typing) prSend();
+  else if(Date.now()-PR.sentAt >= 5000) prSend(true);
+  clearTimeout(PR.typeT); PR.typeT = setTimeout(() => prSend(), 3050);
+}
+function prOff(){
+  if(PR.ch) sb.removeChannel(PR.ch);
+  clearInterval(PR.beatT); clearInterval(PR.drawT); clearTimeout(PR.sendT);
+  Object.assign(PR, { ch: null, room: null, ready: false, sent: null, metas: [] }); PR.seen.clear(); prDraw();
+}
+async function prOn(room){
+  prOff();
+  PR.room = room;                                              // 바로 적어 둠(겹쳐 두 번 안 붙게)
+  const { data } = await sb.auth.getSession();
+  if(!data.session || PR.room !== room) return;
+  sb.realtime.setAuth(data.session.access_token);
+  const ch = sb.channel("board:" + room, { config: { private: true, presence: { key: PR.key } } });
+  PR.ch = ch;
+  ch.on("presence", { event: "sync" }, () => {
+    const st = ch.presenceState(), now = Date.now(), live = new Set();
+    PR.metas = Object.values(st).flat().map(m => {            // seen = 그 상태를 내가 받은 시각(시계가 달라도 끊긴 사람 가려냄)
+      const id = m.phx_ref || JSON.stringify(m); live.add(id);
+      if(!PR.seen.has(id)) PR.seen.set(id, now);
+      return { ...m, seen: PR.seen.get(id) };
+    });
+    for(const id of [...PR.seen.keys()]) if(!live.has(id)) PR.seen.delete(id);
+    prDraw();
+  });
+  ch.subscribe(s => { if(s === "SUBSCRIBED"){ PR.ready = true; PR.sent = null; prSend(true, true); } });   // 끊기면 supabase-js 가 다시 붙음 · 알림 안 띄움
+  PR.beatT = setInterval(() => prSend(true), 60000);
+  PR.drawT = setInterval(prDraw, 2000);                        // 3분·8초 지나 사라지는 것 반영
+}
+// 화면이 바뀔 때마다 부름: 연결(방·이름이 있을 때) · 내 상태 보내기
+function prSet(){
+  const room = (cur && cur.room_id) || (rows.find(r => r.room_id) || {}).room_id || null, who = prWho();
+  drawMe();
+  if(!room || !who || !$("login").classList.contains("hide")){ if(PR.ch || PR.room) prOff(); return; }
+  if(PR.room !== room){ prOn(room); return; }
+  prSend(false, document.hidden);                              // 숨겨지면 바로 sid:null
+}
+function prDraw(){
+  const me = prWho(), now = Date.now();
+  document.querySelectorAll("[data-pv]").forEach(el => {
+    const vs = prViewers(PR.metas, me, el.dataset.pv, now);
+    el.innerHTML = vs.slice(0,3).map(v => `<i style="background:${prColor(v.who)}" title="${esc(prTip(v))}">${esc([...v.who][0])}</i>`).join("")
+      + (vs.length>3 ? `<i class="more" title="${esc(vs.slice(3).map(prTip).join(", "))}">+${vs.length-3}</i>` : "");
+  });
+  const vs = cur && !$("detail").classList.contains("hide") ? prViewers(PR.metas, me, cur.id, now) : [];
+  $("pvBar").innerHTML = vs.map(v => { const t = esc(prBarTxt(v)); return `<span title="${esc(prTip(v))}"><b style="background:${prColor(v.who)}"></b>${v.typing ? t.replace(/…$/, "") + '<span class="dots"><i>.</i><i>.</i><i>.</i></span>' : t}</span>`; }).join("");
+}
+window.addEventListener("resize", () => prSend());
 
 // ---------- 자동 저장 · 남이 고친 글 안 덮기 (5차 지시 §1·§2 — Devis와 같은 규칙) ----------
 const FIELDS = ["title","plan","product","author","body","must_shots","memo"];
@@ -191,8 +288,8 @@ const changedKeys = () => base ? FIELDS.filter(k => !same(formVal(k), base[k])) 
 function refreshDirty(){ dirty = changedKeys().length>0; $("saveBtn").disabled = !dirty; }
 function status(t){ $("savedMsg").textContent = t; }
 const now = () => new Date().toLocaleTimeString('ko-KR');
-function onEdit(){                      // 칸을 고칠 때마다: 치기를 멈추고 1.5초 뒤 저장
-  refreshDirty(); prTyped();
+function onEdit(typed){                 // 칸을 고칠 때마다: 치기를 멈추고 1.5초 뒤 저장 (typed = 사람이 친 것 → '고치는 중')
+  refreshDirty(); if(typed) prTyped();
   clearTimeout(autoT);
   if(dirty && !conflict) autoT = setTimeout(() => saveNow(false), 1500);
 }
@@ -303,7 +400,7 @@ function setView(v){
   // 스토리보드·대본만 = Devis 파일(devis-storyboard.js)로 그림. '글' = 원래 고치기 칸
   // 스토리보드는 칸 안에서 바로 고침(edit). 고친 글은 '대본 원문' 칸으로 → 저장 단추로 저장. 같은 글이면 다시 안 그림(커서 그대로)
   if(v==="sb") DevisSB.render($("v_dsb"), $("f_body").value, { view: "sb", mustShots: $("f_must_shots").value.split("\n"), edit: true,
-    onChange(t){ $("f_body").value = t; onEdit(); } });
+    onChange(t){ $("f_body").value = t; onEdit(true); } });
   if(v==="sb" && pendingUndo!=null){ const I = $("v_dsb")._dsbEdit; if(I && I.hist) I.hist.push(pendingUndo); pendingUndo = null; }  // [새 글 보기] 전 내 글 = 되돌리기(↶)로 돌아옴
   else if(v==="tts") DevisSB.render($("v_dsb"), $("f_body").value, { view: "tts", mustShots: $("f_must_shots").value.split("\n") });
   $("d_title").textContent = $("f_title").value || "(제목 없음)";
@@ -332,13 +429,14 @@ function renderList(){
     return `<div class="card ${done?'done':whoCls(w)}" data-id="${r.id}"><div class="cardIn">${th}<div>
       <div class="row" style="justify-content:space-between">
         <span class="t">${esc(r.title||"(제목 없음)")}</span>
-        ${done?'<span class="who none">완료</span>':`<span class="who ${whoCls(w)}">${w||"-"}</span>`}
+        <span class="pvs" data-pv="${r.id}"></span>${done?'<span class="who none">완료</span>':`<span class="who ${whoCls(w)}">${w||"-"}</span>`}
       </div>
       <div class="meta one">${esc(r.plan)} ${r.product?"· "+esc(r.product):""}</div>
       <div class="meta">${done?"업로드 완료":"다음: "+esc(st.next)} · ${st.pct}%</div>
       <div class="bar"><i style="width:${st.pct}%;background:${done?'#bbb':w==='세종'?'var(--sj)':'var(--hj)'}"></i></div>
     </div></div></div>`;
   }).join("") || `<div class="meta">대본이 없다.</div>`;
+  prDraw(); prSet();
 }
 
 function open(id){
@@ -372,8 +470,8 @@ async function save(patch){
 }
 
 $("saveBtn").onclick = () => saveNow(true);   // 누르면 바로 저장(같은 겹침 검사)
-$("v_txt").addEventListener("input", onEdit);
-$("v_txt").addEventListener("change", onEdit);
+$("v_txt").addEventListener("input", () => onEdit(true));
+$("v_txt").addEventListener("change", () => onEdit(false));
 $("nextBtn").onclick = async () => {
   const n = cur.stage+1; if(n>5) return;
   if(!confirm(`"${STAGES[n].label}" 체크할까?`)) return;
@@ -412,7 +510,7 @@ $("loginBtn").onclick = async () => {
   const {error} = await sb.auth.signInWithPassword({email:$("email").value.trim(), password:$("pw").value});
   if(error) $("loginMsg").textContent = "로그인 실패: "+error.message; else start();
 };
-$("logoutBtn").onclick = async () => { await sb.auth.signOut(); show("login"); };
+$("logoutBtn").onclick = async () => { prOff(); await sb.auth.signOut(); show("login"); };
 document.addEventListener("visibilitychange", () => {
   const inDetail = !$("detail").classList.contains("hide");
   if(document.hidden){ if(inDetail && dirty && !conflict) saveNow(false); }   // 창을 숨길 때 바로 저장

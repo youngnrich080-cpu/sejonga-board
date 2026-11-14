@@ -239,7 +239,6 @@ document.addEventListener("compositionstart", () => { LV.composing = true; });
 document.addEventListener("compositionend", () => setTimeout(lvFlushQ, 0));
 // 글자 위치 ↔ (줄, 칸 안 위치)
 const lineOfPos = (v, p) => v.slice(0, p).split("\n").length - 1;
-function caretInEd(e){ const sel = getSelection(); if(!sel.rangeCount || !e.contains(sel.anchorNode)) return 0; const r = sel.getRangeAt(0), pre = document.createRange(); pre.selectNodeContents(e); pre.setEnd(r.startContainer, r.startOffset); return pre.toString().length; }
 // 남의 고침(또는 저장 때 합친 글)을 내 글에 넣기 — 커서·스크롤·치는 칸 그대로 · 되돌리기 기록의 옛 글들에도 같은 고침
 function lvApply(old, txt, quiet){
   const oL = old.split("\n"), nL = txt.split("\n"), sx = scrollX, sy = scrollY, ta = $("f_body"), ae = document.activeElement;
@@ -247,18 +246,9 @@ function lvApply(old, txt, quiet){
     const s = ta.selectionStart, e = ta.selectionEnd, map = p => { const l = lineOfPos(old, p), col = p - (old.lastIndexOf("\n", p - 1) + 1), nl = LVF.lineMap(oL, nL, l); return nL.slice(0, nl).reduce((a, x) => a + x.length + 1, 0) + Math.min(col, (nL[nl] || "").length); };
     const ns = map(s), ne = map(e); ta.value = txt; ta.setSelectionRange(ns, ne);
   } else ta.value = txt;
-  const I = $("v_dsb")._dsbEdit;
-  if(view === "sb" && I){
-    let focus = null;
-    if(ae && ae.matches && ae.matches(".bdScView .bdEd") && $("v_dsb").contains(ae)){
-      const row = ae.closest("[data-line]");
-      if(row) focus = { line: LVF.lineMap(oL, nL, +row.dataset.line), f: ae.dataset.f, at: caretInEd(ae) };
-    }
-    const fold = h => LVF.merge3(old, txt, h, { mineWins: true }).text;   // Devis 와 같이: 기록에도 남의 고침
-    I.hist = I.hist.map(fold); I.fut = I.fut.map(fold);
-    I.body = txt;                                               // 같은 글로 다시 render 해도 다시 안 그림(커서 그대로)
-    I.draw(focus);
-  } else if(view === "tts") setView("tts");
+  const ed = view === "sb" && DevisSB.editor($("v_dsb"));
+  if(ed) ed.remote(txt);                                        // Devis 손잡이: 커서·치는 칸 그대로 · 되돌리기 기록에도 남의 고침 · 한글 조합 중이면 끝난 뒤
+  else if(view === "tts") setView("tts");
   scrollTo(sx, sy);
   if(LV.my.line != null){ const nl = LVF.lineMap(oL, nL, LV.my.line); if(nl !== LV.my.line){ LV.my.line = nl; lvSendLk(); } }
   lvDrawLocks();
@@ -271,8 +261,8 @@ function lvToast(msg){ const d = document.createElement("div"); d.className = "l
 function lvMyLine(){
   const ae = document.activeElement;
   if(ae === $("f_body")) return lineOfPos(ae.value, ae.selectionStart);
-  const e0 = ae && ae.closest && ae.closest("#v_dsb .bdScView .bdEd"), row = e0 && e0.closest("[data-line]");
-  return row ? +row.dataset.line : null;
+  const ed = view === "sb" && DevisSB.editor($("v_dsb")), c = ed && ed.cursor();
+  return c ? c.line : null;
 }
 function lvSendLk(){ const L = formVal("body").split("\n"), l = LV.my.line; lvSend({ e: "lk", line: l, hint: l == null ? "" : (L[l] || "").slice(0, 12), since: LV.my.since }); }
 function lvTrack(){
@@ -303,32 +293,15 @@ function lvLock(m){
   if(m.line == null){ LV.locks.delete(m.c); return lvDrawLocks(); }
   LV.locks.set(m.c, { who: m.who, line: m.line, hint: m.hint, since: m.since, seen: Date.now() });
   const L = formVal("body").split("\n"), li = LVF.lkFind(L, m.line, m.hint);
-  if(li >= 0 && li === LV.my.line && !LVF.lkWin({ since: LV.my.since, who: prWho(), c: LV.c }, { since: m.since, who: m.who, c: m.c })){   // 같은 줄을 남이 먼저 잡음 → 나는 빠짐
-    const ae = document.activeElement;
-    if(ae && ae.closest && ae.closest("#v_dsb .bdScView .bdEd")) ae.blur();
+  // 같은 줄을 남이 먼저 잡음 → 스토리보드는 잠금을 그리면 Devis 파일이 칸에서 빼고 onLockedOut(알림) · 글 보기는 알림만(치기는 beforeinput 에서 막음)
+  if(li >= 0 && li === LV.my.line && document.activeElement === $("f_body") && !LVF.lkWin({ since: LV.my.since, who: prWho(), c: LV.c }, { since: m.since, who: m.who, c: m.c }))
     lvToast(`${m.who}${josa(m.who)} 쓰는 중인 줄이에요`);
-    LV.my.line = null; lvSendLk();
-  }
   lvDrawLocks();
 }
-function lvDrawLocks(){
-  const vw = $("v_dsb").querySelector(".bdScView.sb");
-  if(!vw) return;
-  LV.drawingLk = true;
-  vw.querySelectorAll(".bdLk").forEach(r => { r.classList.remove("bdLk"); r.style.removeProperty("--lk"); r.querySelectorAll(":scope > .bdLkTag").forEach(t => t.remove()); });
-  vw.querySelectorAll('.bdEd[data-lk]').forEach(e => { e.setAttribute("contenteditable", "plaintext-only"); e.removeAttribute("data-lk"); });
-  for(const [li, who] of lvLockedLines()){
-    const row = vw.querySelector(`[data-line="${li}"]`);
-    if(!row) continue;
-    row.classList.add("bdLk"); row.style.setProperty("--lk", prColor(who));
-    const tag = document.createElement("span"); tag.className = "bdLkTag"; tag.style.background = prColor(who); tag.textContent = `${who} 쓰는 중`; row.appendChild(tag);
-    row.querySelectorAll(".bdEd").forEach(e => { if(e.closest("[data-line]") === row && e.getAttribute("contenteditable") !== "false"){ e.setAttribute("contenteditable", "false"); e.dataset.lk = "1"; } });
-  }
-  LV.drawingLk = false;
+function lvDrawLocks(){                                           // 잠긴 줄 그리기는 Devis 손잡이(setLocks) — 다시 그려도 그대로
+  const ed = DevisSB.editor($("v_dsb"));
+  if(ed) ed.setLocks([...lvLockedLines()].map(([line, who]) => ({ line, who, color: prColor(who) })));
 }
-// 스토리보드를 다시 그릴 때마다 잠금도 다시(그리는 건 Devis 파일 안이라 바뀐 걸 보고 다시 붙임)
-new MutationObserver(ms => { if(!LV.drawingLk && ms.some(m => m.target.classList && (m.target.classList.contains("bdScView") || m.target.id === "v_dsb"))) lvDrawLocks(); })
-  .observe($("v_dsb"), { childList: true, subtree: true });
 // 글 보기(textarea): 잠긴 줄에 치기·붙게 되는 지우기를 막음
 $("f_body").addEventListener("beforeinput", e => {
   const lk = lvLockedLines(); if(!lk.size) return;
@@ -564,7 +537,10 @@ function setView(v){
   // 스토리보드·대본만 = Devis 파일(devis-storyboard.js)로 그림. '글' = 원래 고치기 칸
   // 스토리보드는 칸 안에서 바로 고침(edit). 고친 글은 '대본 원문' 칸으로 → 저장 단추로 저장. 같은 글이면 다시 안 그림(커서 그대로)
   if(v==="sb") DevisSB.render($("v_dsb"), $("f_body").value, { view: "sb", mustShots: $("f_must_shots").value.split("\n"), edit: true,
-    onChange(t){ $("f_body").value = t; onEdit(true); lvBody(); } });
+    onChange(t){ $("f_body").value = t; onEdit(true); lvBody(); },
+    onCursor(){ lvTrack(); },                                  // 내 커서 줄이 바뀜 → 'lk'
+    onLockedOut(l){ lvToast(`${l.who}${josa(l.who)} 쓰는 중인 줄이에요`); } });
+  if(v==="sb") lvDrawLocks();
   if(v==="sb" && pendingUndo!=null){ const I = $("v_dsb")._dsbEdit; if(I && I.hist) I.hist.push(pendingUndo); pendingUndo = null; }  // [새 글 보기] 전 내 글 = 되돌리기(↶)로 돌아옴
   else if(v==="tts") DevisSB.render($("v_dsb"), $("f_body").value, { view: "tts", mustShots: $("f_must_shots").value.split("\n") });
   $("d_title").textContent = $("f_title").value || "(제목 없음)";

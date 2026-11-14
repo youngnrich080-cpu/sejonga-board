@@ -14,6 +14,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 async function openWin(b, who, viewport, mobile) {
   const page = await b.newPage({ viewport, isMobile: mobile, hasTouch: mobile, deviceScaleFactor: OUT ? 2 : 1 });
   page.errors = []; page.on("pageerror", e => page.errors.push(e.message)); page.on("dialog", d => d.accept());
+  await page.addInitScript(() => { window.__toasts = []; document.addEventListener("DOMContentLoaded", () => new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => n.classList && n.classList.contains("lvToast") && window.__toasts.push(n.textContent)))).observe(document.body, { childList: true })); });
   await page.route("https://board.test/**", r => r.fulfill({ path: path.join(ROOT, new URL(r.request().url()).pathname.slice(1) || "index.html") }));
   await page.route("https://cdn.jsdelivr.net/**", r => r.request().url().includes("supabase-js") ? r.fulfill({ contentType: "application/javascript", body: fs.readFileSync(UMD) }) : r.abort());
   await page.route("https://ndyygluwlfeqibpdhnjk.supabase.co/rest/**", r => {
@@ -135,6 +136,21 @@ async function label(b, page, f, title) {
   await B.keyboard.press("Backspace");
   ok((await body(B)).split("\n")[4] === b4, "잠긴 줄 바로 아래 줄 맨 앞 Backspace 도 막음");
   await B.click('#vtabs [data-v="sb"]');
+
+  // ⑥-1 같은 줄을 거의 동시에 잡음 → 먼저 잡은 A 가 이김 · B 는 칸에서 빠지고 알림
+  await B.click("#d_title"); await wait(1200);   // B 는 칸 밖(아무 줄도 안 잡음)
+  ok(!(await lockOf(A)).some(x => x.line === 2) && !(await lockOf(B)).some(x => x.line === 2), "(둘째 줄은 아무도 안 잡음)");
+  rt.block = true;
+  await A.click('.bdScView [data-line="2"] .bdEd'); await wait(300);
+  await B.click('.bdScView [data-line="2"] .bdEd'); await wait(200);
+  rt.block = false; await wait(2600);              // 2초마다 다시 알리는 lk 로 서로 앎
+  const bFocus = await B.evaluate(() => { const r = document.activeElement && document.activeElement.closest && document.activeElement.closest("[data-line]"); return r ? +r.dataset.line : null; });
+  const bLk = await lockOf(B), aLk = await lockOf(A);
+  if (process.env.DBG) console.log("DBG", bFocus, JSON.stringify(bLk), JSON.stringify(aLk), JSON.stringify(rt.sent.filter(x => x.e === "lk").slice(-6).map(x => [x.who, x.line, x.since % 100000])));
+  ok(bFocus !== 2 && bLk.some(x => x.line === 2 && x.tag === "현재 쓰는 중") && !aLk.some(x => x.line === 2), "같은 줄 동시에 → 먼저 잡은 A 가 이김, B 는 칸에서 빠짐");
+  ok(rt.sent.some(x => x.who === "세종" && x.e === "lk" && x.line === null), "B 는 잠금을 풂(lk line:null)");
+  ok((await B.evaluate(() => window.__toasts)).includes("현재가 쓰는 중인 줄이에요"), "B 에 '현재가 쓰는 중인 줄이에요' 알림");
+  await A.click('.bdScView [data-line="4"] .bdEd'); await wait(300);
 
   // ⑦ A 창을 닫으면 5초 안에 풀림
   await A.close(); await wait(6200);

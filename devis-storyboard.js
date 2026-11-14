@@ -1,4 +1,4 @@
-/* devis-storyboard.js — 만든 날짜 2026-11-14 · Devis 커밋 b18697b
+/* devis-storyboard.js — 만든 날짜 2026-11-14 · Devis 커밋 d7da402
  * Devis 대본 보드의 스토리보드·대본만 보기·글 보기를 웹 보드에서 똑같이 그리는 파일(보기 전용). build.py 가 만듦 — 손으로 고치지 말 것.
  * 사용: DevisSB.render(el, 대본글, { view: 'sb' | 'tts' | 'text', mustShots }) — 짝 파일 devis-storyboard.css 도 같이 넣기 */
 var DevisSB = (function () {
@@ -769,12 +769,84 @@ function mountEdit(el) {
       EDIT = false;
       I.drawing = false;
     }
+    paintLocks(); // #900b 다시 그려도 남이 쓰는 줄 표시 그대로
     if (focus) {
       const row = vw.querySelector(`[data-line="${focus.line}"]`),
         e = row && (focus.f ? row.querySelector(`.bdEd[data-f="${focus.f}"]`) : row.querySelector('.bdEd'));
-      if (e) caretIn(e, focus.at ?? 'end');
-      if (row) row.scrollIntoView({ block: 'nearest' });
+      if (e && e.getAttribute('contenteditable') !== 'false') caretIn(e, focus.at ?? 'end');
+      if (row && !focus.keepScroll) row.scrollIntoView({ block: 'nearest' });
     }
+  };
+  // ---- #900b 같이 고치기용(웹 보드가 밖에서 부름 — Devis live900.js 와 같은 모양·규칙) ----
+  I.lk = []; // [{ line, who, color }] 남이 쓰는 줄
+  I.composing = false;
+  I.pending = null; // 한글 조합 중에 온 남의 글(조합 끝나면 넣음)
+  const paintLocks = () => {
+    const vw = $v();
+    if (!vw) return;
+    const was = document.activeElement; // 칸을 끄면 초점이 먼저 빠지므로 끄기 전에 봄
+    for (const r of vw.querySelectorAll('.bdLk')) (r.classList.remove('bdLk'), r.style.removeProperty('--lk'));
+    for (const e of vw.querySelectorAll('.bdEd[data-lk]')) (e.setAttribute('contenteditable', e.dataset.lk), delete e.dataset.lk);
+    for (const x of vw.querySelectorAll('.bdLkTag')) x.remove();
+    let blur = null;
+    for (const l of I.lk) {
+      const row = vw.querySelector(`[data-line="${l.line}"]`);
+      if (!row) continue;
+      row.classList.add('bdLk');
+      row.style.setProperty('--lk', l.color || '#1D4ED8');
+      const tag = document.createElement('span');
+      tag.className = 'bdLkTag';
+      tag.textContent = `${l.who} 쓰는 중`;
+      tag.style.background = l.color || '#1D4ED8';
+      row.appendChild(tag);
+      for (const e of row.querySelectorAll('.bdEd')) {
+        if (e.closest('[data-line]') !== row) continue; // 안쪽 다른 줄(DM 말풍선)은 따로
+        e.dataset.lk = e.getAttribute('contenteditable') || 'plaintext-only';
+        e.setAttribute('contenteditable', 'false');
+        if (was === e) blur = e;
+      }
+    }
+    if (blur) {
+      blur.blur(); // 내가 있던 줄을 남이 먼저 잡음 — 잠깐 못 고침
+      if (I.opt.onLockedOut) I.opt.onLockedOut(I.lk.find((l) => blur.closest(`[data-line="${l.line}"]`)) || I.lk[0]);
+    }
+  };
+  I.setLocks = (list) => {
+    I.lk = (list || []).filter((l) => l && l.line != null);
+    paintLocks();
+  };
+  I.cursor = () => {
+    const a = document.activeElement,
+      e = a && $v() && $v().contains(a) && a.closest('.bdEd'),
+      row = e && e.closest('[data-line]');
+    if (!row) return null;
+    const line = +row.dataset.line;
+    return { line, hint: (lines()[line] || '').slice(0, 12) };
+  };
+  I.remote = (text) => {
+    // 남이 고친 글(합친 글)을 넣음 — 내 커서·스크롤·치는 칸 그대로 · 되돌리기 기록에도 같은 고침을 섞어 남의 고침은 안 되돌림
+    text = String(text == null ? '' : text);
+    if (text === I.body) return;
+    if (I.composing) return void (I.pending = text);
+    const old = I.body,
+      oldL = old.split('\n'),
+      newL = text.split('\n'),
+      vw = $v(),
+      top = vw ? vw.scrollTop : 0,
+      a = document.activeElement,
+      e = a && vw && vw.contains(a) && a.closest('.bdEd'),
+      row = e && e.closest('[data-line]');
+    const focus = row ? { line: bdLineMap(oldL, newL, +row.dataset.line), f: e.dataset.f, at: caretOf(e).a, keepScroll: true } : null;
+    const rebase = (h) => {
+      const m = bdMerge3(old, text, h, { mineWins: true });
+      return m && m.ok ? m.text : h;
+    };
+    I.hist = I.hist.map(rebase);
+    I.fut = I.fut.map(rebase);
+    I.body = text; // onChange 안 부름(받은 글을 되돌려 보내지 않게 — 웹 보드가 이 글을 이미 앎)
+    if (I.at != null) I.at = bdLineMap(oldL, newL, I.at);
+    draw(focus);
+    if (vw) vw.scrollTop = top;
   };
   const commit = (r) => {
     snap('edit');
@@ -1024,6 +1096,25 @@ function mountEdit(el) {
   on(document, 'click', (e) => {
     if (el.isConnected && !el.contains(e.target)) menuClose();
   });
+  on(el, 'compositionstart', () => (I.composing = true), true);
+  on(el, 'compositionend', () => {
+    I.composing = false;
+    if (I.pending != null) {
+      const t = I.pending;
+      I.pending = null;
+      setTimeout(() => I.remote(t)); // 조합이 끝나 글이 들어간 뒤
+    }
+  }, true);
+  let curLine = null;
+  const curTell = () => {
+    const c = I.cursor(),
+      ln = c ? c.line : null;
+    if (ln === curLine) return;
+    curLine = ln;
+    if (I.opt.onCursor) I.opt.onCursor(c); // { line, hint } 또는 null(칸에서 나감)
+  };
+  on(document, 'selectionchange', curTell);
+  on(el, 'focusout', () => setTimeout(curTell), true);
   I.draw = draw;
   I.off = () => I.subs.splice(0).forEach((f) => f());
   return I;
@@ -1087,5 +1178,11 @@ const live = {
   lkWin: bdLkWin, // 같은 줄을 동시에 잡았을 때 먼저 잡은 사람이 이김
   LK_TTL: BD_LK_TTL // 5000 — 이 시간(ms) 줄 알림이 없으면 잠금을 풂
 };
-return { render, parse: bdScParse, split: bdSbSplit, ttsLines: bdTtsGroups, mustItems, live };
+// #900b 고치는 칸 손잡이: DevisSB.editor(칸) → { remote(글), setLocks([{line, who, color}]), cursor() } (edit:true 로 render 한 칸만, 아니면 null)
+//   render(…, { edit:true, onChange, onCursor(c|null), onLockedOut(lock) }) — onCursor = 내 커서 줄이 바뀔 때(줄 잠금 알림 'lk' 보낼 때) · onLockedOut = 내 줄을 남이 먼저 잡아 칸에서 빠졌을 때(작은 알림)
+function editor(el) {
+  const I = el && el._dsbEdit;
+  return I ? { remote: I.remote, setLocks: I.setLocks, cursor: I.cursor } : null;
+}
+return { render, editor, parse: bdScParse, split: bdSbSplit, ttsLines: bdTtsGroups, mustItems, live };
 })();

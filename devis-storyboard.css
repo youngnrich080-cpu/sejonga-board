@@ -1,4 +1,4 @@
-/* devis-storyboard.css — 만든 날짜 2026-11-14 · Devis 커밋 b18697b
+/* devis-storyboard.css — 만든 날짜 2026-11-14 · Devis 커밋 d7da402
  * web/style.css 에서 스토리보드·대본만 규칙을 .dsb 범위로 옮긴 것(밝은 화면 값) + tools/webboard/dsb_extra.css(폰 규칙). build.py 가 만듦 — 손으로 고치지 말 것. */
 .dsb {
   --gap:#F1F3F4;

@@ -1,4 +1,4 @@
-/* devis-storyboard.js — 만든 날짜 2026-11-14 · Devis 커밋 d7da402
+/* devis-storyboard.js — 만든 날짜 2026-11-14 · Devis 커밋 7a9c388 + 아직 커밋 안 한 수정
  * Devis 대본 보드의 스토리보드·대본만 보기·글 보기를 웹 보드에서 똑같이 그리는 파일(보기 전용). build.py 가 만듦 — 손으로 고치지 말 것.
  * 사용: DevisSB.render(el, 대본글, { view: 'sb' | 'tts' | 'text', mustShots }) — 짝 파일 devis-storyboard.css 도 같이 넣기 */
 var DevisSB = (function () {
@@ -408,8 +408,22 @@ function bdHunkIn(s, big, B) {
   return !B.slice(s.a, s.b).some((x) => big.r.includes(x));
 }
 const bdOv = (h, ga, gb) => (h.a < gb && ga < h.b) || h.a === ga;
+// #904 같이 고치기 중 저장 겹침: 겹친 곳에서 남의 줄이 모두 '내가 이미 본 줄'(같이 고치기로 받았거나 내가 쳤던 줄)이면
+// 남의 저장은 내 글의 옛 판일 뿐(내가 치던 줄의 반쯤 친 모습 등) → 겹쳐도 내 글로 합침. 처음 보는 줄이 하나라도 있으면 null(막대로 물어봄)
+function bdSeenWins(base, cur, mine, seen) {
+  const m = bdMerge3(base, cur, mine, { seen });
+  return m.ok ? m.text : null;
+}
+const BD_SEEN_MAX = 4000;
+function bdSeenAdd(seen, text) {
+  // 본 줄 모음에 이 글의 줄들을 더함(너무 커지면 처음부터)
+  if (!seen) return;
+  if (seen.size > BD_SEEN_MAX) seen.clear();
+  for (const x of bdLinesOf(text)) seen.add(x);
+}
 function bdMerge3(base, cur, mine, opt) {
   const win = !!(opt && opt.mineWins),
+    seen = (opt && opt.seen) || null,
     B = bdLinesOf(base),
     C = bdLinesOf(cur),
     M = bdLinesOf(mine);
@@ -465,6 +479,7 @@ function bdMerge3(base, cur, mine, opt) {
       if (bdArrEq(sc, sm)) res = sm;
       else if (g1.every((h) => g2.some((k) => bdHunkIn(h, k, B)))) res = sm;
       else if (g2.every((h) => g1.some((k) => bdHunkIn(h, k, B)))) res = sc;
+      else if (seen && sc.every((x) => seen.has(x))) res = sm; // #904 겹친 곳의 남의 줄이 다 '내가 본 줄'(같이 고치기로 받았거나 내가 쳤던 줄) = 내 글의 옛 판 → 내 것
       else if (win) {
         res = sm;
         bad++;
@@ -728,7 +743,8 @@ function caretOf(e) {
 }
 
 function mountEdit(el) {
-  const I = { body: '', hist: [], fut: [], at: null, addAt: null, kind: null, kt: 0, drawing: false, opt: {}, sig: null, drawn: false, subs: [] };
+  const COMP_STALE = 1500; // #904 조합 소식이 이만큼(ms) 없으면 조합 끝으로 봄
+  const I = { body: '', hist: [], fut: [], at: null, addAt: null, kind: null, kt: 0, drawing: false, opt: {}, sig: null, drawn: false, subs: [], seen: new Set() }; // #904 seen = 이 칸에서 본 줄(친 줄·받은 줄)
   const $v = () => el.querySelector('.bdScView'),
     $m = () => el.querySelector('.bdAddMenu'),
     lines = () => I.body.split('\n');
@@ -739,6 +755,7 @@ function mountEdit(el) {
   const setBody = (t) => {
     if (t === I.body) return;
     I.body = t;
+    bdSeenAdd(I.seen, t);
     try {
       if (I.opt.onChange) I.opt.onChange(t);
     } catch (e) {
@@ -780,6 +797,7 @@ function mountEdit(el) {
   // ---- #900b 같이 고치기용(웹 보드가 밖에서 부름 — Devis live900.js 와 같은 모양·규칙) ----
   I.lk = []; // [{ line, who, color }] 남이 쓰는 줄
   I.composing = false;
+  I.compAt = 0; // #904 마지막 조합 소식 때
   I.pending = null; // 한글 조합 중에 온 남의 글(조합 끝나면 넣음)
   const paintLocks = () => {
     const vw = $v();
@@ -827,7 +845,21 @@ function mountEdit(el) {
     // 남이 고친 글(합친 글)을 넣음 — 내 커서·스크롤·치는 칸 그대로 · 되돌리기 기록에도 같은 고침을 섞어 남의 고침은 안 되돌림
     text = String(text == null ? '' : text);
     if (text === I.body) return;
-    if (I.composing) return void (I.pending = text);
+    if (I.composing && Date.now() - I.compAt < COMP_STALE) {
+      // 조합 중 = 끝난 뒤 넣음. #904 compositionend 가 안 오는 때(조합 중 칸이 다시 그려짐 · 폰 자판)를 위해 잠깐 뒤 다시 봄 — 안 그러면 남의 글이 영영 안 들어옴
+      I.pending = text;
+      clearTimeout(I.compT);
+      I.compT = setTimeout(() => {
+        if (I.pending != null) {
+          const t = I.pending;
+          I.pending = null;
+          I.remote(t);
+        }
+      }, COMP_STALE + 50);
+      return;
+    }
+    I.composing = false;
+    I.pending = null;
     const old = I.body,
       oldL = old.split('\n'),
       newL = text.split('\n'),
@@ -844,8 +876,25 @@ function mountEdit(el) {
     I.hist = I.hist.map(rebase);
     I.fut = I.fut.map(rebase);
     I.body = text; // onChange 안 부름(받은 글을 되돌려 보내지 않게 — 웹 보드가 이 글을 이미 앎)
+    bdSeenAdd(I.seen, text);
     if (I.at != null) I.at = bdLineMap(oldL, newL, I.at);
     draw(focus);
+    if (vw) vw.scrollTop = top;
+  };
+  I.take = (text) => {
+    // #900c 밖에서 정한 글로 바꾸되 되돌리기 한 칸으로(↶ = 바꾸기 전 내 글) — 충돌 막대 [새 글 보기] 뒤 ↶로 내 글 되찾기. onChange 안 부름(서버 글과 같으니 저장할 것 없음 · ↶ 하면 그때 저장)
+    text = String(text == null ? '' : text);
+    if (text === I.body) return;
+    if (I.hist.at(-1) !== I.body) I.hist.push(I.body);
+    if (I.hist.length > 300) I.hist.shift();
+    I.fut = [];
+    I.kind = null;
+    const vw = $v(),
+      top = vw ? vw.scrollTop : 0;
+    I.body = text;
+    bdSeenAdd(I.seen, text);
+    I.at = I.at != null ? Math.min(I.at, lines().length - 1) : null;
+    draw(null);
     if (vw) vw.scrollTop = top;
   };
   const commit = (r) => {
@@ -1096,7 +1145,9 @@ function mountEdit(el) {
   on(document, 'click', (e) => {
     if (el.isConnected && !el.contains(e.target)) menuClose();
   });
-  on(el, 'compositionstart', () => (I.composing = true), true);
+  on(el, 'compositionstart', () => ((I.composing = true), (I.compAt = Date.now())), true);
+  on(el, 'compositionupdate', () => (I.compAt = Date.now()), true); // #904 조합이 계속되는 동안만 '조합 중'
+  on(el, 'focusout', () => (I.composing = false), true);
   on(el, 'compositionend', () => {
     I.composing = false;
     if (I.pending != null) {
@@ -1152,6 +1203,7 @@ function render(el, body, opt) {
     if (I.drawn && I.body === text && I.sig === sig && el.querySelector('.bdScView')) return el;
     if (I.drawn && I.body !== text) (I.hist = []), (I.fut = []); // 밖에서 바뀐 글 = 되돌리기 기록은 새로
     I.body = text;
+    bdSeenAdd(I.seen, text);
     I.sig = sig;
     I.drawn = true;
     el.innerHTML = `<div class="bdF bdScF" data-view="sb">${barHtml()}<div class="bdScView sb" tabindex="-1"></div></div>${mustHtml(o.mustShots)}`;
@@ -1176,13 +1228,14 @@ const live = {
   lineMap: bdLineMap, // (옛 줄들, 새 줄들, 줄 번호) → 새 줄 번호 — 커서·잠금 줄이 앞에서 줄이 늘고 줄어도 따라감
   lkFind: bdLkFind, // (내 줄들, 보낸 줄 번호, 그 줄 글 앞 12자) → 내 글에서 그 줄 번호
   lkWin: bdLkWin, // 같은 줄을 동시에 잡았을 때 먼저 잡은 사람이 이김
-  LK_TTL: BD_LK_TTL // 5000 — 이 시간(ms) 줄 알림이 없으면 잠금을 풂
+  LK_TTL: BD_LK_TTL, // 5000 — 이 시간(ms) 줄 알림이 없으면 잠금을 풂
+  seenWins: bdSeenWins // #904 (기준 글, 남이 저장한 글, 내 글, editor(칸).seen()) → 합친 글 | null — 남의 글에서 내 글에 없는 줄이 다 '내가 본 줄'이면 겹쳐도 내 글(같이 고치는 중 거짓 충돌 막기) · null = 진짜 처음 보는 고침 → 막대
 };
-// #900b 고치는 칸 손잡이: DevisSB.editor(칸) → { remote(글), setLocks([{line, who, color}]), cursor() } (edit:true 로 render 한 칸만, 아니면 null)
+// #900b 고치는 칸 손잡이: DevisSB.editor(칸) → { remote(글), setLocks([{line, who, color}]), cursor(), take(글) — #900c 되돌리기 한 칸으로 바꾸기, seen() — #904 본 줄 모음 } (edit:true 로 render 한 칸만, 아니면 null)
 //   render(…, { edit:true, onChange, onCursor(c|null), onLockedOut(lock) }) — onCursor = 내 커서 줄이 바뀔 때(줄 잠금 알림 'lk' 보낼 때) · onLockedOut = 내 줄을 남이 먼저 잡아 칸에서 빠졌을 때(작은 알림)
 function editor(el) {
   const I = el && el._dsbEdit;
-  return I ? { remote: I.remote, setLocks: I.setLocks, cursor: I.cursor } : null;
+  return I ? { remote: I.remote, setLocks: I.setLocks, cursor: I.cursor, take: I.take, seen: () => I.seen } : null;
 }
 return { render, editor, parse: bdScParse, split: bdSbSplit, ttsLines: bdTtsGroups, mustItems, live };
 })();

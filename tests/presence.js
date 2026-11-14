@@ -3,7 +3,7 @@
 const { chromium } = require("playwright");
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), UMD = process.env.SUPABASE_UMD, OUT = process.env.OUT;
-const SESSION = { access_token: "fake", refresh_token: "fake", token_type: "bearer", expires_in: 9e6, expires_at: Math.floor(Date.now() / 1000) + 9e6, user: { id: "u1", email: "t@example.com" } };
+const SESSION = { access_token: "fake", refresh_token: "fake", token_type: "bearer", expires_in: 9e6, expires_at: Math.floor(Date.now() / 1000) + 9e6, user: { id: "u1", email: " GUSWO1115@hanmail.net " } };   // 로그인 계정 → '현재'(대소문자·앞뒤 공백 무시)
 const ROWS = [
   { id: "a1", room_id: "room1", title: "눈 점안액 (V로토 프리미엄)", plan: "E · 3편", product: "", author: "현재", body: "-가게-\n첫 줄\n둘째 줄", must_shots: "", memo: "", stage: 1, stage_log: {}, updated_at: "2026-11-14T00:00:00+00:00" },
   { id: "a2", room_id: "room1", title: "겨울철 다가올 때 가습기", plan: "E · 4편", product: "", author: "현재", body: "줄", must_shots: "", memo: "", stage: 1, stage_log: {}, updated_at: "2026-11-14T00:00:00+00:00" },
@@ -53,10 +53,10 @@ async function run(name, viewport, mobile) {
   await page.goto("https://board.test/");
   await page.waitForSelector(".card");
   await page.waitForTimeout(500);
-  ok(!rt.topic, "이름을 안 골랐으면 연결 안 함");
-  await page.click('#mePick [data-me="현재"]');
   await page.waitForTimeout(800);
-  ok(rt.topic === "realtime:board:room1" && rt.joinCfg.private === true && !!rt.joinCfg.presence.key, "고르면 board:<방 id> 비공개 채널에 붙음");
+  ok(!(await page.$("#mePick")), "'나 세종/현재' 고르는 칸 없음");
+  ok(await page.evaluate(() => [nameOf("sejongahhh@gmail.com"), nameOf("guswo1115@hanmail.net"), nameOf("Nuna.K@naver.com")].join()) === "세종,현재,nuna.k", "이름 = 로그인 이메일(세종·현재 · 그 밖은 @ 앞부분)");
+  ok(rt.topic === "realtime:board:room1" && rt.joinCfg.private === true && !!rt.joinCfg.presence.key, "로그인하면 바로 board:<방 id> 비공개 채널에 붙음");
   const t0 = rt.tracks[0] || {};
   ok(t0.who === "현재" && t0.dev === (mobile ? "폰" : "웹") && t0.sid === null && t0.typing === false && typeof t0.at === "number", `내 상태 {who:현재, dev:${mobile ? "폰" : "웹"}, sid:null, typing:false, at}`);
 

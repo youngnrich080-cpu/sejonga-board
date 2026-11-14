@@ -3,7 +3,8 @@
 const { chromium } = require("playwright");
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), UMD = process.env.SUPABASE_UMD, OUT = process.env.OUT;
-const SESSION = { access_token: "fake", refresh_token: "fake", token_type: "bearer", expires_in: 9e6, expires_at: Math.floor(Date.now() / 1000) + 9e6, user: { id: "u1", email: "t@example.com" } };
+const EMAIL = { "현재": "guswo1115@hanmail.net", "세종": "sejongahhh@gmail.com" };   // 로그인 계정 → 보드 이름(Devis 와 같은 규칙)
+const sessionOf = who => ({ access_token: "fake", refresh_token: "fake", token_type: "bearer", expires_in: 9e6, expires_at: Math.floor(Date.now() / 1000) + 9e6, user: { id: "u-" + who, email: EMAIL[who] } });
 let tick = 0; const stamp = () => new Date(Date.UTC(2026, 10, 14, 1, 0, tick++)).toISOString().replace("Z", "+00:00");
 const db = { row: { id: "a1", room_id: "room1", title: "눈 점안액 (V로토 프리미엄)", plan: "E · 3편", product: "", author: "현재", body: "-가게-\n첫 줄\n둘째 줄\n셋째 줄\n넷째 줄\n다섯째 줄", must_shots: "", memo: "", stage: 1, stage_log: {}, updated_at: stamp() } };
 // 가짜 Realtime: 같은 topic 의 다른 창에 broadcast 를 넘겨 줌(self:false) · block = 아무것도 안 넘김 · drop = 이 말 하나 버림
@@ -28,7 +29,7 @@ async function openWin(b, who, viewport, mobile) {
     r.fulfill({ contentType: "application/json", body: JSON.stringify(one ? db.row : [db.row]) });
   });
   await page.routeWebSocket(/\/realtime\/v1\/websocket/, ws => {
-    const me = { ws, topic: null, join: null, who, page };
+    const me = { ws, topic: null, join: null, who, page }; page.sock = me;
     rt.socks.push(me);
     ws.onClose(() => { rt.socks = rt.socks.filter(x => x !== me); });
     ws.onMessage(raw => {
@@ -44,7 +45,7 @@ async function openWin(b, who, viewport, mobile) {
       reply();
     });
   });
-  await page.addInitScript(([s, w]) => { localStorage.setItem("sb-ndyygluwlfeqibpdhnjk-auth-token", s); localStorage.setItem("sjb_who", w); }, [JSON.stringify(SESSION), who]);
+  await page.addInitScript(s => { localStorage.setItem("sb-ndyygluwlfeqibpdhnjk-auth-token", s); }, JSON.stringify(sessionOf(who)));
   await page.goto("https://board.test/");
   await page.click('.card[data-id="a1"]');
   await page.waitForSelector(".bdSb");
@@ -151,6 +152,37 @@ async function label(b, page, f, title) {
   ok(rt.sent.some(x => x.who === "세종" && x.e === "lk" && x.line === null), "B 는 잠금을 풂(lk line:null)");
   ok((await B.evaluate(() => window.__toasts)).includes("현재가 쓰는 중인 줄이에요"), "B 에 '현재가 쓰는 중인 줄이에요' 알림");
   await A.click('.bdScView [data-line="4"] .bdEd'); await wait(300);
+
+  // ⑧ (8차 #904) A 가 한 줄을 0.45초마다 한 자씩 4초 넘게 치는 동안 B 가 다른 줄을 치고 자동 저장 → A 저장 때 막대 없음
+  await A.click('.bdScView [data-line="3"] .bdEd'); await A.keyboard.press("End");
+  const typing = (async () => { for (let i = 0; i < 10; i++) { await A.keyboard.type("가나다라마바사아자차"[i]); await wait(450); } })();
+  await wait(900);
+  await typeEnd(B, 5, " B가씀");
+  await typing; await wait(2600);
+  const aBody = await body(A);
+  ok(!(await A.isVisible("#conflict")) && !(await B.isVisible("#conflict")), "계속 치는 동안 남이 저장해도 막대 없음(거짓 충돌 없음)");
+  ok(db.row.body === aBody && aBody.includes("가나다라마바사아자차") && aBody.includes("다섯째 줄 하나 둘 B가씀"), "서버 글 = A 글(다 친 줄 + B 줄)");
+  await A.keyboard.type(" 더"); await wait(2200);
+  ok(db.row.body.includes("가나다라마바사아자차 더"), "그 뒤 자동 저장 계속");
+
+  // ⑨ (8차) 한글 조합 소식이 끊겨도(compositionend 안 옴) 1.5초 뒤엔 남의 글이 들어옴
+  await B.click('.bdScView [data-line="1"] .bdEd');
+  await B.evaluate(() => document.activeElement.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true, data: "ㅎ" })));
+  await typeEnd(A, 4, " 조합중에옴"); await wait(2600);
+  ok((await body(B)).includes("조합중에옴"), "조합이 안 끝난 채로 멈춰도 남의 글이 들어옴(1.5초 뒤)");
+  await A.keyboard.type(" 또옴"); await wait(900);
+  ok((await body(B)).includes("조합중에옴 또옴"), "그 뒤에도 계속 들어옴");
+
+  // ⑩ (8차) 소켓이 끊겼다 다시 붙으면: '다시 연결 중…' → 붙으면 사라지고 full·want 로 맞춤
+  const n0 = rt.sent.length;
+  await B.sock.ws.close();
+  await wait(300);
+  ok(await B.isVisible("#rtState") && (await B.$eval("#rtState", x => x.textContent)) === "다시 연결 중…", "끊기면 '다시 연결 중…'");
+  await B.waitForFunction(() => !document.getElementById("rtState") || document.getElementById("rtState").offsetParent === null, null, { timeout: 15000 }).catch(() => {});
+  ok(!(await B.isVisible("#rtState")), "다시 붙으면 사라짐");
+  ok(rt.sent.slice(n0).some(x => x.who === "세종" && x.e === "full") && rt.sent.slice(n0).some(x => x.who === "세종" && x.e === "want"), "다시 붙으면 내 글 full + want");
+  await typeEnd(A, 4, " 다시붙음"); await wait(900);
+  ok((await body(B)).includes("다시붙음"), "다시 붙은 뒤 남의 글이 들어옴");
 
   // ⑦ A 창을 닫으면 5초 안에 풀림
   await A.close(); await wait(6200);

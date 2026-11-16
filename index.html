@@ -538,7 +538,7 @@ async function refreshCur(){
   if(error || !srv || !cur || cur.id!==id) return;
   if(srv.updated_at === base.updated_at) return;
   if(!dirty && !conflict){ adoptOthers(srv, []); base.updated_at = srv.updated_at; takeRow(srv); return; }
-  takeRow({stage: srv.stage, stage_log: srv.stage_log, thumb: srv.thumb});
+  takeRow({stage: srv.stage, stage_log: srv.stage_log, stage_by: srv.stage_by, thumb: srv.thumb});
   if(!conflict) saveNow(false);
 }
 window.addEventListener("beforeunload", e => { if(conflict || dirty){ e.preventDefault(); e.returnValue = ""; } });
@@ -608,9 +608,9 @@ function renderSteps(){
   $("progressNow").innerHTML = s===5 ? `<b>100% 완료</b>`
     : `<b>${STAGES[s].pct}%</b> · 다음: ${esc(STAGES[s].next)} <span class="who ${whoCls(w)}">${w}</span>`;
   $("steps").innerHTML = STAGES.slice(1).map((st,i) => {
-    const n = i+1, t = cur.stage_log?.[n];
+    const n = i+1, t = cur.stage_log?.[n], by = nameOf(cur.stage_by?.[n]);  // #946 누가 체크했나(Supabase 트리거가 로그인 메일을 적음 — Devis docs/sql/stage_by_946.sql)
     const who = n===1 ? cur.author : STAGES[n-1].who;  // INTEGRATION.md 표의 '다음 담당'
-    return `<li class="${n<=s?'ok':''} ${n===s+1?'cur':''}">${n<=s?'✓':'○'} <span class="lbl">${esc(st.label)}</span> ${t?`<span class="meta">${new Date(t).toLocaleString('ko-KR')}</span>`:""}<span class="sw">${esc(who||"")}</span></li>`;
+    return `<li class="${n<=s?'ok':''} ${n===s+1?'cur':''}">${n<=s?'✓':'○'} <span class="lbl">${esc(st.label)}</span> ${t?`<span class="meta">${new Date(t).toLocaleString('ko-KR')}${by?` · ${esc(by)}`:""}</span>`:""}<span class="sw">${esc(who||"")}</span></li>`;
   }).join("");
   $("nextBtn").disabled = s>=5; $("prevBtn").disabled = s<=0;
 }
